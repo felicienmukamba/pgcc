@@ -100,46 +100,51 @@ export default function MarriageRecordsPage() {
       {/* Marriage Records List */}
       <div className="grid gap-4">
         {filteredRecords.map((record) => (
-          <Card key={record.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <HeartHandshake className="h-4 w-4 text-primary" />
-                    <h3 className="font-semibold">
-                      {record.partner1.firstName} {record.partner1.lastName} & {record.partner2.firstName}{" "}
-                      {record.partner2.lastName}
-                    </h3>
-                    <Badge variant="outline">{record.marriageType}</Badge>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
+          <Link href={`/dashboard/marriage-records/${record.id}`} key={record.id}>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      <span>{new Date(record.marriageDate).toLocaleDateString("fr-FR")}</span>
+                      <HeartHandshake className="h-4 w-4 text-primary" />
+                      <h3 className="font-semibold">
+                        {record.partner1.firstName} {record.partner1.lastName} & {record.partner2.firstName}{" "}
+                        {record.partner2.lastName}
+                      </h3>
+                      <Badge variant="outline">{record.marriageType}</Badge>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      <span>{record.marriagePlace}</span>
-                    </div>
-
-                    {record.contractType && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">Régime:</span>
-                        <span>{record.contractType}</span>
+                        <Calendar className="h-4 w-4" />
+                        <span>{new Date(record.marriageDate).toLocaleDateString("fr-FR")}</span>
                       </div>
-                    )}
 
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      <span>Officiant: {record.officiant.username}</span>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        <span>{record.marriagePlace}</span>
+                      </div>
+
+                      {record.contractType && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Régime:</span>
+                          <span>{record.contractType}</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        <span>Officier: {record.officiant.username}</span>
+                      </div>
                     </div>
                   </div>
+                  <Button variant="outline" className="flex-shrink-0">
+                    Voir plus
+                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 

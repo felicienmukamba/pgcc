@@ -1,4 +1,3 @@
-// app/api/biometric/recognize/route.ts
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -99,7 +98,6 @@ export async function POST(request: NextRequest) {
         ? [
             {
               citizenId: bestMatch.label,
-              confidence: 1 - bestMatch.distance,
               confidence: 1 - bestMatch.distance,
               citizen: citizens.find((c) => c.citizenId === bestMatch.label)?.citizen,
             },

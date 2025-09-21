@@ -37,7 +37,7 @@ const CitizenSearchField = ({ label, required, onCitizenSelect }: { label: strin
       setIsSearching(true);
       try {
         // Envoi de la requête à l'API avec le paramètre 'query'
-        const response = await fetch(`/api/citizens?query=${query}`);
+        const response = await fetch(`/api/citizens`);
         if (!response.ok) {
           throw new Error("Erreur lors de la recherche des citoyens.");
         }
@@ -206,7 +206,7 @@ export default function NewMarriageRecordPage() {
     return null;
   }
 
-  const registrarName = session?.user?.username || "Non disponible";
+  const registrarId = session?.user?.id;
 
   return (
     <div className="space-y-6">
@@ -303,7 +303,7 @@ export default function NewMarriageRecordPage() {
 
             <div className="space-y-2">
               <Label htmlFor="officiant">Officier d'état civil</Label>
-              <Input id="officiant" value={registrarName} readOnly className="cursor-not-allowed bg-muted" />
+              <Input id="officiant" value={registrarId} readOnly className="cursor-not-allowed bg-muted" />
             </div>
 
             <div className="flex justify-end gap-4">

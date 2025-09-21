@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Camera, Square, RotateCcw, Check } from "lucide-react"
+import { Camera, Square, RotateCcw, Check, Upload } from "lucide-react"
 
 interface FaceCaptureProps {
   onCapture: (imageData: string) => void
@@ -16,6 +16,7 @@ interface FaceCaptureProps {
 export function FaceCapture({ onCapture, onError, title, description }: FaceCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [isStreaming, setIsStreaming] = useState(false)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [error, setError] = useState<string>("")
@@ -79,6 +80,33 @@ export function FaceCapture({ onCapture, onError, title, description }: FaceCapt
     startCamera()
   }, [startCamera])
 
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const imageData = reader.result as string
+        setCapturedImage(imageData)
+        stopCamera()
+        onCapture(imageData)
+        setError("")
+      }
+      reader.onerror = () => {
+        const errorMessage = "Erreur lors du chargement du fichier."
+        setError(errorMessage)
+        onError?.(errorMessage)
+      }
+      reader.readAsDataURL(file)
+    }
+  }, [onCapture, onError, stopCamera])
+
+  useEffect(() => {
+    // Clean up camera stream on component unmount
+    return () => {
+      stopCamera()
+    }
+  }, [stopCamera])
+
   return (
     <Card>
       <CardHeader>
@@ -86,7 +114,7 @@ export function FaceCapture({ onCapture, onError, title, description }: FaceCapt
           <Camera className="h-5 w-5" />
           {title || "Capture d'image faciale"}
         </CardTitle>
-        <CardDescription>{description || "Positionnez votre visage dans le cadre et capturez l'image"}</CardDescription>
+        <CardDescription>{description || "Positionnez votre visage dans le cadre ou importez une image."}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="relative">
@@ -140,10 +168,16 @@ export function FaceCapture({ onCapture, onError, title, description }: FaceCapt
 
         <div className="flex gap-2 justify-center">
           {!isStreaming && !capturedImage && (
-            <Button onClick={startCamera}>
-              <Camera className="mr-2 h-4 w-4" />
-              Activer la caméra
-            </Button>
+            <>
+              <Button onClick={startCamera}>
+                <Camera className="mr-2 h-4 w-4" />
+                Activer la caméra
+              </Button>
+              <Button onClick={() => fileInputRef.current?.click()} variant="outline">
+                <Upload className="mr-2 h-4 w-4" />
+                Importer une image
+              </Button>
+            </>
           )}
 
           {isStreaming && (
@@ -164,6 +198,14 @@ export function FaceCapture({ onCapture, onError, title, description }: FaceCapt
               Reprendre
             </Button>
           )}
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
         </div>
       </CardContent>
     </Card>

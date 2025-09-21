@@ -1,26 +1,24 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { type NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // Check if user is a doctor
-    const hasPermission = session.user.roles.includes("MEDECIN")
+    const hasPermission = session.user.roles.includes("MEDECIN");
 
     if (!hasPermission) {
-      return NextResponse.json({ error: "Permissions insuffisantes - Accès médecin requis" }, { status: 403 })
+      return NextResponse.json({ error: "Permissions insuffisantes - Accès médecin requis" }, { status: 403 });
     }
 
-    const data = await request.json()
+    const data = await request.json();
 
-    // Create consultation with prescriptions
     const consultation = await prisma.consultation.create({
       data: {
         date: new Date(data.date),
@@ -53,21 +51,21 @@ export async function POST(request: NextRequest) {
           },
         },
       },
-    })
+    });
 
-    return NextResponse.json(consultation)
+    return NextResponse.json(consultation);
   } catch (error) {
-    console.error("Error creating consultation:", error)
-    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 })
+    console.error("Error creating consultation:", error);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
   }
 }
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
     const consultations = await prisma.consultation.findMany({
@@ -83,11 +81,11 @@ export async function GET() {
       orderBy: {
         date: "desc",
       },
-    })
+    });
 
-    return NextResponse.json(consultations)
+    return NextResponse.json(consultations);
   } catch (error) {
-    console.error("Error fetching consultations:", error)
-    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 })
+    console.error("Error fetching consultations:", error);
+    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
   }
 }

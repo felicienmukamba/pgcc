@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,13 +8,27 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, Search } from "lucide-react"
 import Link from "next/link"
 import { toast } from "@/hooks/use-toast"
 
+// Interfaces pour le modèle de données
+interface Citizen {
+  id: string;
+  firstName: string;
+  lastName: string;
+  nationalityID: string;
+  birthDate: string;
+}
+
 export default function NewConvictionPage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [citizens, setCitizens] = useState<Citizen[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredCitizens, setFilteredCitizens] = useState<Citizen[]>([]);
+  const [selectedCitizen, setSelectedCitizen] = useState<Citizen | null>(null);
+
   const [formData, setFormData] = useState({
     citizenId: "",
     offense: "",
@@ -27,38 +39,92 @@ export default function NewConvictionPage() {
     status: "ACTIVE",
     appealStatus: "NONE",
     observations: "",
-  })
+  });
+
+  // Fonction de recherche débouncée pour éviter trop de requêtes
+  const filterCitizens = useCallback((query: string) => {
+    if (!query) {
+      setFilteredCitizens([]);
+      return;
+    }
+    const lowerCaseQuery = query.toLowerCase();
+    const results = citizens.filter(citizen => 
+      citizen.firstName.toLowerCase().includes(lowerCaseQuery) ||
+      citizen.lastName.toLowerCase().includes(lowerCaseQuery) ||
+      citizen.nationalityID.toLowerCase().includes(lowerCaseQuery)
+    );
+    setFilteredCitizens(results);
+  }, [citizens]);
+
+  useEffect(() => {
+    const fetchCitizens = async () => {
+      try {
+        const response = await fetch("/api/citizens");
+        if (!response.ok) {
+          throw new Error("Erreur lors de la récupération des citoyens");
+        }
+        const data = await response.json();
+        setCitizens(data);
+      } catch (error) {
+        console.error("Failed to fetch citizens:", error);
+        toast({
+          title: "Erreur de chargement",
+          description: "Impossible de charger la liste des citoyens.",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchCitizens();
+  }, []);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      filterCitizens(searchQuery);
+    }, 300); // Déclenche le filtrage 300ms après la dernière frappe
+
+    return () => clearTimeout(handler);
+  }, [searchQuery, filterCitizens]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
+
+    if (!selectedCitizen) {
+      toast({
+        title: "Erreur de validation",
+        description: "Veuillez sélectionner un citoyen avant de continuer.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch("/api/convictions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
+        body: JSON.stringify({ ...formData, citizenId: selectedCitizen.id }),
+      });
 
       if (response.ok) {
         toast({
           title: "Succès",
           description: "Condamnation enregistrée avec succès",
-        })
-        router.push("/dashboard/convictions")
+        });
+        router.push("/dashboard/convictions");
       } else {
-        throw new Error("Erreur lors de la création")
+        throw new Error("Erreur lors de la création");
       }
     } catch (error) {
       toast({
         title: "Erreur",
         description: "Impossible d'enregistrer la condamnation",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -82,14 +148,69 @@ export default function NewConvictionPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="citizenId">ID Citoyen *</Label>
-              <Input
-                id="citizenId"
-                value={formData.citizenId}
-                onChange={(e) => setFormData((prev) => ({ ...prev, citizenId: e.target.value }))}
-                required
-              />
+            {/* Citizen Selection */}
+            <div className="space-y-4">
+              <Label>Citoyen *</Label>
+              {!selectedCitizen ? (
+                <>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Rechercher par nom, prénom ou ID national..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <Button type="button" variant="outline" className="shrink-0">
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {searchQuery && filteredCitizens.length > 0 && (
+                    <div className="max-h-48 overflow-y-auto space-y-2 rounded-md border p-2">
+                      {filteredCitizens.map((citizen) => (
+                        <div
+                          key={citizen.id}
+                          className="p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                          onClick={() => {
+                            setSelectedCitizen(citizen);
+                            setFormData((prev) => ({ ...prev, citizenId: citizen.id }));
+                            setSearchQuery("");
+                          }}
+                        >
+                          <div className="font-medium">
+                            {citizen.firstName} {citizen.lastName}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            ID: {citizen.nationalityID} • Né(e) le{" "}
+                            {new Date(citizen.birthDate).toLocaleDateString("fr-FR")}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {searchQuery && filteredCitizens.length === 0 && (
+                    <div className="p-3 text-sm text-muted-foreground">Aucun citoyen trouvé.</div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-muted">
+                  <div>
+                    <div className="font-medium">
+                      {selectedCitizen.firstName} {selectedCitizen.lastName}
+                    </div>
+                    <div className="text-sm text-muted-foreground">ID: {selectedCitizen.nationalityID}</div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedCitizen(null);
+                      setFormData((prev) => ({ ...prev, citizenId: "" }));
+                    }}
+                  >
+                    Retirer
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -215,5 +336,5 @@ export default function NewConvictionPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

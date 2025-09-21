@@ -1,4 +1,3 @@
-// app/api/upload/route.ts
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";

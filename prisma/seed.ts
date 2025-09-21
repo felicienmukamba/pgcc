@@ -547,30 +547,6 @@ async function main() {
   });
   console.log("✅ Plaintes et condamnations créées.");
 
-
-  console.log("📸 Création des données biométriques...");
-  // --- WebAuthnCredential
-  const webAuthnCredential = await prisma.webAuthnCredential.create({
-    data: {
-      citizenId: enfant1.id,
-      credentialId: "example_credential_id_12345",
-      publicKey: Buffer.from("example_public_key"),
-      type: "fingerprint",
-      name: "Index droit",
-    },
-  });
-
-  // --- FaceDescriptor
-  const faceDescriptor = await prisma.faceDescriptor.create({
-    data: {
-      citizenId: enfant1.id,
-      descriptor: [0.123, 0.456, 0.789, 0.987, 0.654, 0.321, 0.555, 0.777],
-      confidence: 0.95,
-    },
-  });
-  console.log("✅ Données biométriques créées.");
-
-
   console.log("🎉 Seed terminé avec succès !");
 }
 

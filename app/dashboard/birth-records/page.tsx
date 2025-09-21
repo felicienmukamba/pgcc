@@ -5,8 +5,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, FileText, Calendar, MapPin } from "lucide-react"
+import { Plus, Search, FileText, Calendar, MapPin, ExternalLink } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface BirthRecord {
   id: string
@@ -29,6 +30,8 @@ export default function BirthRecordsPage() {
   const [birthRecords, setBirthRecords] = useState<BirthRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+
+  const router = useRouter(); 
 
   useEffect(() => {
     fetchBirthRecords()
@@ -131,6 +134,16 @@ export default function BirthRecordsPage() {
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground">
                     Enregistré le {new Date(record.date).toLocaleDateString("fr-FR")}
+                  </p>
+                  <p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => router.push(`/dashboard/birth-records/${record.id}`)}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Voir plus
+                      </Button>
                   </p>
                 </div>
               </div>
