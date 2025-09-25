@@ -146,35 +146,13 @@ export default function NewUserPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ADMIN">Administrateur</SelectItem>
-                  <SelectItem value="CIVIL_SERVANT">Fonctionnaire</SelectItem>
-                  <SelectItem value="MEDICAL_STAFF">Personnel médical</SelectItem>
-                  <SelectItem value="SECURITY_OFFICER">Agent de sécurité</SelectItem>
-                  <SelectItem value="REGISTRAR">Officier d'état civil</SelectItem>
+                  <SelectItem value="OFFICIER_ETAT_CIVIL">Fonctionnaire</SelectItem>
+                  <SelectItem value="MEDECIN">Personnel médical</SelectItem>
+                  <SelectItem value="OPJ">Personnel sécurité</SelectItem>
+                  <SelectItem value="PROCUREUR">Personnel Justice</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="department">Département</Label>
-                <Input
-                  id="department"
-                  value={formData.department}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, department: e.target.value }))}
-                  placeholder="ex: État Civil, Santé, Sécurité"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="position">Poste</Label>
-                <Input
-                  id="position"
-                  value={formData.position}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, position: e.target.value }))}
-                  placeholder="ex: Responsable, Agent, Médecin"
-                />
-              </div>
-            </div>
-
             <div className="flex justify-end gap-4">
               <Link href="/dashboard/users">
                 <Button variant="outline" type="button">

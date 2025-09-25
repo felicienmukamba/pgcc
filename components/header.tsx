@@ -65,10 +65,6 @@ export function Header() {
               <User className="mr-2 h-4 w-4" />
               <span>Profil</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Paramètres</span>
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut()}>
               <LogOut className="mr-2 h-4 w-4" />

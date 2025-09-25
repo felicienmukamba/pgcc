@@ -205,6 +205,8 @@ model Citizen {
   childrenAsMother Citizen[]    @relation("MotherChild")
 
   images                   Image[]
+
+
   birthRecordChild         BirthRecord?        @relation("ChildCitizen")
   birthRecordsDeclarer     BirthRecord[]       @relation("DeclarerCitizen")
   marriagesAsPartner1      MarriageRecord[]    @relation("Partner1")
@@ -222,6 +224,8 @@ model Citizen {
   convictions              Conviction[]        @relation("Convicted")
   webauthnCredentials      WebAuthnCredential[]
   faceDescriptors          FaceDescriptor[]
+
+  fingerprintEmbedding FingerprintEmbedding[]
 
   @@map("citizens")
 }
@@ -430,4 +434,16 @@ model FaceDescriptor {
   descriptor  Float[]
   confidence  Float?
   citizen     Citizen @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+}
+
+model FingerprintEmbedding {
+  id        String    @id @default(cuid())
+  citizenId String    @unique
+  embedding Float[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+
+  @@map("fingerprint_embeddings")
 }

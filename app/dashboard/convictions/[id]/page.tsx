@@ -1,325 +1,255 @@
-"use client"
+import { notFound } from "next/navigation"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import {
+  Calendar,
+  User,
+  Gavel,
+  Scale,
+  DollarSign,
+  Info,
+  Clock,
+  Briefcase,
+  AlertCircle,
+} from "lucide-react"
 
-import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Save, X } from "lucide-react"
-import Link from "next/link"
-import { toast } from "@/hooks/use-toast"
+async function getConvictionDetails(id: string) {
+  const session = await getServerSession(authOptions)
 
-// Interface pour le modèle de données Citizen
-interface Citizen {
-  id: string
-  firstName: string
-  lastName: string
-  nationalityID: string
+  if (!session) {
+    return null
+  }
+
+  const conviction = await prisma.conviction.findUnique({
+    where: { id },
+    include: {
+      citizen: true,
+      prosecutor: true,
+    },
+  })
+
+  // Return null if no conviction is found or if the user doesn't have the necessary role
+  if (!conviction || !session.user.roles.some(role => ["ADMIN", "PROCUREUR", "POLICE"].includes(role))) {
+    return null
+  }
+
+  return conviction
 }
 
-const marriageTypes = ["CIVIL", "RELIGIOUS", "TRADITIONAL"];
-const contractTypes = ["COMMUNITY_PROPERTY", "SEPARATION_OF_PROPERTY"];
-
-// Composant réutilisable pour la recherche de citoyen
-const CitizenSearchField = ({ label, required, onCitizenSelect }: { label: string, required: boolean, onCitizenSelect: (citizen: Citizen | null) => void }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Citizen[]>([]);
-  const [selectedCitizen, setSelectedCitizen] = useState<Citizen | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-    if (query.length > 2) {
-      setIsSearching(true);
-      try {
-        // Envoi de la requête à l'API avec le paramètre 'query'
-        const response = await fetch(`/api/citizens`);
-        if (!response.ok) {
-          throw new Error("Erreur lors de la recherche des citoyens.");
-        }
-        const data = await response.json();
-        setSearchResults(data);
-      } catch (error) {
-        toast({
-          title: "Erreur de recherche",
-          description: "Impossible de rechercher les citoyens.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsSearching(false);
-      }
-    } else {
-      setSearchResults([]);
-    }
-  };
-
-  const selectCitizen = (citizen: Citizen) => {
-    setSelectedCitizen(citizen);
-    onCitizenSelect(citizen);
-    setSearchQuery("");
-    setSearchResults([]);
-  };
-
-  const removeCitizen = () => {
-    setSelectedCitizen(null);
-    onCitizenSelect(null);
-  };
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={label.replace(/\s/g, "")}>{label} {required && "*"}</Label>
-      {!selectedCitizen ? (
-        <>
-          <div className="flex gap-2">
-            <Input
-              id={label.replace(/\s/g, "")}
-              placeholder={`Rechercher le ${label.toLowerCase()} par nom ou ID national...`}
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              disabled={isSearching}
-            />
-          </div>
-          {isSearching && <p className="text-sm text-muted-foreground">Recherche en cours...</p>}
-          {searchQuery.length > 2 && searchResults.length > 0 && (
-            <div className="max-h-48 overflow-y-auto space-y-2 border rounded-lg p-2">
-              {searchResults.map((citizen) => (
-                <div
-                  key={citizen.id}
-                  className="p-3 rounded-lg cursor-pointer hover:bg-muted"
-                  onClick={() => selectCitizen(citizen)}
-                >
-                  <div className="font-medium">
-                    {citizen.firstName} {citizen.lastName}
-                  </div>
-                  <div className="text-sm text-muted-foreground">ID: {citizen.nationalityID}</div>
-                </div>
-              ))}
-            </div>
-          )}
-          {searchQuery.length > 2 && searchResults.length === 0 && !isSearching && (
-            <p className="text-sm text-muted-foreground">Aucun résultat trouvé.</p>
-          )}
-        </>
-      ) : (
-        <div className="flex items-center justify-between p-3 border rounded-lg bg-muted">
-          <div>
-            <div className="font-medium">
-              {selectedCitizen.firstName} {selectedCitizen.lastName}
-            </div>
-            <div className="text-sm text-muted-foreground">ID: {selectedCitizen.nationalityID}</div>
-          </div>
-          <Button type="button" variant="outline" size="sm" onClick={removeCitizen}>
-            <X className="h-4 w-4 mr-2" />
-            Changer
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-
-export default function NewMarriageRecordPage() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const [loading, setLoading] = useState(false);
-
-  // States for citizen selections
-  const [husband, setHusband] = useState<Citizen | null>(null);
-  const [wife, setWife] = useState<Citizen | null>(null);
-  const [witness1, setWitness1] = useState<Citizen | null>(null);
-  const [witness2, setWitness2] = useState<Citizen | null>(null);
-  const [witness3, setWitness3] = useState<Citizen | null>(null);
-
-  // Form data state for non-citizen fields
-  const [formData, setFormData] = useState({
-    marriageDate: "",
-    marriagePlace: "",
-    marriageType: "",
-    contractType: "",
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    if (!husband || !wife || !witness1 || !witness2) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner l'époux, l'épouse et au moins deux témoins.",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/marriage-records", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          partner1Id: husband.id,
-          partner2Id: wife.id,
-          witness1Id: witness1.id,
-          witness2Id: witness2.id,
-          witness3Id: witness3?.id, // witness3 is optional
-        }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Succès",
-          description: "Acte de mariage créé avec succès",
-        });
-        router.push("/dashboard/marriage-records");
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Erreur lors de la création");
-      }
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: `Impossible de créer l'acte de mariage: ${error instanceof Error ? error.message : String(error)}`,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Gérer le statut de la session
-  if (status === "loading") {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p>Chargement en cours...</p>
-      </div>
-    );
+// Re-using your existing helper functions for badges
+const getSentenceTypeColor = (type: string) => {
+  switch (type) {
+    case "IMPRISONMENT":
+      return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+    case "FINE":
+      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+    case "COMMUNITY_SERVICE":
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+    default:
+      return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
   }
+}
 
-  if (status === "unauthenticated" || !session?.user?.roles.some(role => ["ADMIN", "OFFICIER_ETAT_CIVIL"].includes(role))) {
-    router.push("/login");
-    return null;
+const getSentenceTypeLabel = (type: string) => {
+  switch (type) {
+    case "IMPRISONMENT":
+      return "Emprisonnement"
+    case "FINE":
+      return "Amende"
+    case "COMMUNITY_SERVICE":
+      return "Travaux d'intérêt général"
+    default:
+      return type
   }
+}
 
-  const registrarId = session?.user?.id;
+const getAppealStatusColor = (status: string) => {
+  switch (status) {
+    case "PENDING":
+      return "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400"
+    case "ACCEPTED":
+      return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+    case "REJECTED":
+      return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+    case "NONE":
+      return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
+    default:
+      return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
+  }
+}
+
+const getAppealStatusLabel = (status: string) => {
+  switch (status) {
+    case "PENDING":
+      return "Appel en cours"
+    case "ACCEPTED":
+      return "Appel accepté"
+    case "REJECTED":
+      return "Appel rejeté"
+    case "NONE":
+      return "Pas d'appel"
+    default:
+      return status
+  }
+}
+
+export default async function ConvictionDetailPage({
+  params,
+}: {
+  params: { id: string }
+}) {
+  const conviction = await getConvictionDetails(params.id)
+
+  if (!conviction) {
+    notFound()
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/marriage-records">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gov-primary">Nouvel Acte de Mariage</h1>
-          <p className="text-muted-foreground">Enregistrer un nouvel acte de mariage</p>
-        </div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Détails de la condamnation</h1>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Informations du Mariage</CardTitle>
-          <CardDescription>Remplissez tous les champs requis pour créer l'acte de mariage</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-2xl font-bold">
+            Condamnation de {conviction.citizen.firstName} {conviction.citizen.lastName}
+          </CardTitle>
+          <div className="flex gap-2">
+            <Badge className={getSentenceTypeColor(conviction.sentenceType)}>
+              {getSentenceTypeLabel(conviction.sentenceType)}
+            </Badge>
+            {conviction.appealStatus !== "NONE" && (
+              <Badge className={getAppealStatusColor(conviction.appealStatus)}>
+                {getAppealStatusLabel(conviction.appealStatus)}
+              </Badge>
+            )}
+          </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="marriageType">Type de mariage *</Label>
-                <Select onValueChange={(value) => setFormData(prev => ({ ...prev, marriageType: value }))} required>
-                  <SelectTrigger id="marriageType">
-                    <SelectValue placeholder="Sélectionner un type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {marriageTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type.charAt(0) + type.slice(1).toLowerCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contractType">Type de contrat (Optionnel)</Label>
-                <Select onValueChange={(value) => setFormData(prev => ({ ...prev, contractType: value }))}>
-                  <SelectTrigger id="contractType">
-                    <SelectValue placeholder="Sélectionner un type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contractTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type.charAt(0) + type.slice(1).toLowerCase().replace(/_/g, " ")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Date de la condamnation</p>
+                <p>{new Date(conviction.date).toLocaleDateString("fr-FR")}</p>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CitizenSearchField label="Époux" required={true} onCitizenSelect={setHusband} />
-              <CitizenSearchField label="Épouse" required={true} onCitizenSelect={setWife} />
+            <div className="flex items-center space-x-2">
+              <Gavel className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Tribunal</p>
+                <p>{conviction.court}</p>
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="marriageDate">Date du mariage *</Label>
-              <Input
-                id="marriageDate"
-                type="date"
-                value={formData.marriageDate}
-                onChange={(e) => setFormData((prev) => ({ ...prev, marriageDate: e.target.value }))}
-                required
-              />
+            <div className="flex items-center space-x-2">
+              <Scale className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Juridiction</p>
+                <p>{conviction.jurisdiction}</p>
+              </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="marriagePlace">Lieu du mariage *</Label>
-              <Input
-                id="marriagePlace"
-                value={formData.marriagePlace}
-                onChange={(e) => setFormData((prev) => ({ ...prev, marriagePlace: e.target.value }))}
-                required
-              />
+            <div className="flex items-center space-x-2">
+              <User className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Procureur</p>
+                <p>{conviction.prosecutor.username}</p>
+              </div>
             </div>
+            {conviction.duration && (
+              <div className="flex items-center space-x-2">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Durée</p>
+                  <p>{conviction.duration}</p>
+                </div>
+              </div>
+            )}
+            {conviction.fineAmount && (
+              <div className="flex items-center space-x-2">
+                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Amende</p>
+                  <p>{conviction.fineAmount.toFixed(2)} €</p>
+                </div>
+              </div>
+            )}
+            {conviction.startDate && (
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Début de peine</p>
+                  <p>{new Date(conviction.startDate).toLocaleDateString("fr-FR")}</p>
+                </div>
+              </div>
+            )}
+            {conviction.endDate && (
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Fin de peine</p>
+                  <p>{new Date(conviction.endDate).toLocaleDateString("fr-FR")}</p>
+                </div>
+              </div>
+            )}
+          </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Témoins</CardTitle>
-                <CardDescription>Sélectionnez au moins deux témoins. Un troisième est optionnel.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <CitizenSearchField label="Témoin 1" required={true} onCitizenSelect={setWitness1} />
-                <CitizenSearchField label="Témoin 2" required={true} onCitizenSelect={setWitness2} />
-                <CitizenSearchField label="Témoin 3 (Optionnel)" required={false} onCitizenSelect={setWitness3} />
-              </CardContent>
-            </Card>
+          <Separator />
 
-            <div className="space-y-2">
-              <Label htmlFor="officiant">Officier d'état civil</Label>
-              <Input id="officiant" value={registrarId} readOnly className="cursor-not-allowed bg-muted" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <div className="flex items-center space-x-2 mb-2">
+                <Briefcase className="h-5 w-5 text-muted-foreground" />
+                <p className="text-sm font-medium text-muted-foreground">Nature de l'infraction</p>
+              </div>
+              <p className="pl-7">{conviction.offenseNature}</p>
             </div>
-
-            <div className="flex justify-end gap-4">
-              <Link href="/dashboard/marriage-records">
-                <Button variant="outline" type="button">
-                  Annuler
-                </Button>
-              </Link>
-              <Button type="submit" disabled={loading || !husband || !wife || !witness1 || !witness2}>
-                <Save className="h-4 w-4 mr-2" />
-                {loading ? "Enregistrement..." : "Enregistrer"}
-              </Button>
+            <div>
+              <div className="flex items-center space-x-2 mb-2">
+                <Gavel className="h-5 w-5 text-muted-foreground" />
+                <p className="text-sm font-medium text-muted-foreground">Sentence</p>
+              </div>
+              <p className="pl-7">{conviction.sentence}</p>
             </div>
-          </form>
+          </div>
+
+          <Separator />
+
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex items-center space-x-2">
+              <Info className="h-5 w-5 text-muted-foreground" />
+              <p className="text-sm font-medium text-muted-foreground">Statut:</p>
+              <Badge variant="outline">{conviction.status}</Badge>
+            </div>
+            {conviction.paroleStatus && (
+              <div className="flex items-center space-x-2">
+                <Info className="h-5 w-5 text-muted-foreground" />
+                <p className="text-sm font-medium text-muted-foreground">Libération conditionnelle:</p>
+                <Badge variant="outline">
+                  {conviction.paroleStatus === "ELIGIBLE"
+                    ? "Éligible"
+                    : conviction.paroleStatus === "GRANTED"
+                    ? "Accordée"
+                    : "Refusée"}
+                </Badge>
+              </div>
+            )}
+            {conviction.rehabilitationStatus && (
+              <div className="flex items-center space-x-2">
+                <Info className="h-5 w-5 text-muted-foreground" />
+                <p className="text-sm font-medium text-muted-foreground">Réhabilitation:</p>
+                <Badge variant="outline">
+                  {conviction.rehabilitationStatus === "PENDING" ? "En cours" : "Terminée"}
+                </Badge>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

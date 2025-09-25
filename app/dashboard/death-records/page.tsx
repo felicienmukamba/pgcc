@@ -5,8 +5,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Skull, Calendar, MapPin, User } from "lucide-react"
+import { Plus, Search, Skull, Calendar, MapPin, User, UserPlus } from "lucide-react"
 import Link from "next/link"
+import { RoleGuard } from "@/components/auth/role-guard"
 
 interface DeathRecord {
   id: string
@@ -27,10 +28,11 @@ interface DeathRecord {
   }
 }
 
-export default function DeathRecordsPage() {
+export default async function DeathRecordsPage() {
   const [deathRecords, setDeathRecords] = useState<DeathRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+
 
   useEffect(() => {
     fetchDeathRecords()
@@ -72,12 +74,14 @@ export default function DeathRecordsPage() {
           <h1 className="text-3xl font-bold text-foreground">Actes de Décès</h1>
           <p className="text-muted-foreground">Gestion des actes de décès et enregistrements mortuaires</p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/death-records/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvel Acte
-          </Link>
-        </Button>
+          <RoleGuard permission="citizens.write">
+            <Link href="/dashboard/death-records/new">
+              <Button>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Nouveau Acte de décès
+              </Button>
+            </Link>
+          </RoleGuard>
       </div>
 
       {/* Search */}

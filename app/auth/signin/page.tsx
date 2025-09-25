@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ThemeToggle } from "@/components/theme-toggle"
+import Image from "next/image"
 
 export default function SignInPage() {
   const [email, setEmail] = useState("")
@@ -44,14 +45,32 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="absolute top-4 right-4">
+    <div
+      className="min-h-screen flex items-center justify-center bg-background p-4 relative"
+      style={{
+        backgroundImage: "url('/img/cellcom-prcd-kaza-compressed.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <div className="absolute top-4 right-4 z-10">
         <ThemeToggle />
       </div>
 
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md z-10 bg-white/80 dark:bg-black/70 backdrop-blur-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-primary">Système de Gestion des Citoyens</CardTitle>
+          <div className="flex justify-center">
+            <Image
+              src="/img/logodrc.jpg"
+              alt="Logo DRC"
+              width={96}
+              height={96}
+              className="rounded-full object-cover mb-2"
+              priority
+            />
+          </div>
+          <CardTitle className="text-2xl font-bold text-primary">{"Système de Gestion des Citoyens"}</CardTitle>
           <CardDescription>Connectez-vous à votre compte</CardDescription>
         </CardHeader>
         <CardContent>
@@ -90,21 +109,6 @@ export default function SignInPage() {
               {loading ? "Connexion..." : "Se connecter"}
             </Button>
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Ou continuer avec</span>
-              </div>
-            </div>
-
-            <Button variant="outline" className="w-full mt-4 bg-transparent" onClick={() => signIn("google")}>
-              Google
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>

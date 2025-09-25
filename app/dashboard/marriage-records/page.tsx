@@ -5,8 +5,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, HeartHandshake, Calendar, MapPin, Users } from "lucide-react"
+import { Plus, Search, HeartHandshake, Calendar, MapPin, Users, UserPlus } from "lucide-react"
 import Link from "next/link"
+
+import { RoleGuard } from "@/components/auth/role-guard"
 
 interface MarriageRecord {
   id: string
@@ -27,10 +29,11 @@ interface MarriageRecord {
   }
 }
 
-export default function MarriageRecordsPage() {
+export default async function MarriageRecordsPage() {
   const [marriageRecords, setMarriageRecords] = useState<MarriageRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+
 
   useEffect(() => {
     fetchMarriageRecords()
@@ -74,12 +77,14 @@ export default function MarriageRecordsPage() {
           <h1 className="text-3xl font-bold text-foreground">Actes de Mariage</h1>
           <p className="text-muted-foreground">Gestion des actes de mariage et unions civiles</p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/marriage-records/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvel Acte
-          </Link>
-        </Button>
+          <RoleGuard permission="citizens.write">
+            <Link href="/dashboard/marriage-records/new">
+              <Button>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Nouvel Acte
+              </Button>
+            </Link>
+          </RoleGuard>
       </div>
 
       {/* Search */}

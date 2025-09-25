@@ -129,7 +129,7 @@ export function FaceCapture({ onCapture, onError, title, description }: FaceCapt
                 style={{ display: isStreaming ? "block" : "none" }}
               />
               {!isStreaming && (
-                <div className="w-full h-64 flex items-center justify-center bg-muted">
+                <div className="w-full h-96 flex items-center justify-center bg-muted">
                   <div className="text-center">
                     <Camera className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">Caméra non activée</p>

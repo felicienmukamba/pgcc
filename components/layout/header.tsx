@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogOut, User, Settings } from "lucide-react"
+import Link from "next/link"
 
 export function Header() {
   const { data: session } = useSession()
@@ -63,7 +64,8 @@ export function Header() {
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
-              <span>Profil</span>
+              <Link href="/dashboard/profile"><span>Profil</span></Link>
+              
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />

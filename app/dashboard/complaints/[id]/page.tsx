@@ -1,245 +1,224 @@
-"use client";
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  ArrowLeft,
+  Calendar,
+  User,
+  Shield,
+  AlertTriangle,
+  FileText,
+  Gavel,
+  Pen,
+  Users,
+  Paperclip,
+} from "lucide-react"
 
-import React, { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Trash2, Edit } from "lucide-react";
-import Link from "next/link";
-import { toast } from "@/hooks/use-toast";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-interface Citizen {
-  id: string;
-  firstName: string;
-  lastName: string;
-  nationalityID: string;
-}
-
-interface User {
-  id: string;
-  name: string;
-}
-
-interface Complaint {
-  id: string;
-  plaintiff: Citizen;
-  accused: Citizen | null;
-  date: string;
-  description: string;
-  place: string;
-  type: string;
-  witnesses: string | null;
-  evidence: string | null;
-  policeOfficer: User;
-  status: string;
-}
-
-export default function ComplaintPage() {
-  const router = useRouter();
-  const { complaintId } = useParams();
-  const [complaint, setComplaint] = useState<Complaint | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchComplaint = async () => {
-      try {
-        const response = await fetch(`/api/complaints/${complaintId}`);
-        if (!response.ok) {
-          throw new Error("Erreur lors de la récupération de la plainte");
-        }
-        const data = await response.json();
-        setComplaint(data);
-      } catch (err) {
-        setError("Plainte introuvable.");
-        console.error("Failed to fetch complaint:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (complaintId) {
-      fetchComplaint();
-    }
-  }, [complaintId]);
-
-  const handleDelete = async () => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette plainte ?")) {
-      return;
-    }
-    setDeleting(true);
-    try {
-      const response = await fetch(`/api/complaints/${complaintId}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Succès",
-          description: "Plainte supprimée avec succès",
-        });
-        router.push("/dashboard/complaints");
-      } else {
-        throw new Error("Échec de la suppression");
-      }
-    } catch (err) {
-      console.error("Failed to delete complaint:", err);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer la plainte.",
-        variant: "destructive",
-      });
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-full">
-        <p>Chargement des détails de la plainte...</p>
-      </div>
-    );
+interface ComplaintDetailsPageProps {
+  params: {
+    id: string
   }
+}
 
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/complaints">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold text-gov-primary">Détails de la plainte</h1>
-        </div>
-        <Alert variant="destructive">
-          <AlertTitle>Erreur</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+async function getComplaint(id: string) {
+  return await prisma.complaint.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      plaintiff: true,
+      accused: true,
+      policeOfficer: true,
+    },
+  })
+}
+
+export default async function ComplaintDetailsPage({ params }: ComplaintDetailsPageProps) {
+  const session = await getServerSession(authOptions)
+  const complaint = await getComplaint(params.id)
 
   if (!complaint) {
-    return null; // Should not happen with the error check, but good practice
+    notFound()
   }
 
-  const statusColors = {
-    PENDING: "bg-yellow-100 text-yellow-800",
-    IN_PROGRESS: "bg-blue-100 text-blue-800",
-    CLOSED: "bg-green-100 text-green-800",
-    REJECTED: "bg-red-100 text-red-800",
-  };
+  // Check if user can edit complaints
+  const canEditComplaint = session?.user?.roles?.some((role) =>
+    ["ADMIN", "OPJ"].includes(role)
+  )
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+      case "IN_PROGRESS":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+      case "RESOLVED":
+        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+      case "REJECTED":
+        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return "En attente"
+      case "IN_PROGRESS":
+        return "En cours"
+      case "RESOLVED":
+        return "Résolue"
+      case "REJECTED":
+        return "Rejetée"
+      default:
+        return status
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/complaints">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour
-          </Button>
-        </Link>
-        <h1 className="text-2xl font-bold text-gov-primary">Détails de la plainte</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Link href="/dashboard/complaints">
+            <Button variant="outline" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Détails de la plainte</h1>
+            <p className="text-muted-foreground">Plainte #{complaint.id.slice(-8)}</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          {canEditComplaint && (
+            <Link href={`/dashboard/complaints/${complaint.id}/edit`}>
+              <Button variant="outline">
+                <Pen className="mr-2 h-4 w-4" />
+                Modifier
+              </Button>
+            </Link>
+          )}
+          <Badge className={getStatusColor(complaint.status)}>
+            {getStatusLabel(complaint.status)}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Informations sur la plainte
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Date:</span>
+              <span>{new Date(complaint.date).toLocaleDateString("fr-FR")}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Gavel className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Type:</span>
+              <span>{complaint.type}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Paperclip className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Lieu:</span>
+              <span>{complaint.place}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <User className="h-5 w-5 text-gray-500" />
+              Parties impliquées
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-muted-foreground">Plaignant:</span>
+              <span className="text-base font-semibold">
+                {complaint.plaintiff.firstName} {complaint.plaintiff.lastName}
+              </span>
+              <span className="text-sm text-muted-foreground">{complaint.plaintiff.phoneNumber}</span>
+            </div>
+            {complaint.accused && (
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-muted-foreground">Accusé:</span>
+                <span className="text-base font-semibold">
+                  {complaint.accused.firstName} {complaint.accused.lastName}
+                </span>
+                <span className="text-sm text-muted-foreground">{complaint.accused.phoneNumber}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-500" />
+              Responsable de l'affaire
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-muted-foreground">Officier de police judiciaire:</span>
+            <span className="text-base font-semibold">{complaint.policeOfficer.username}</span>
+            <span className="text-sm text-muted-foreground">{complaint.policeOfficer.email}</span>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Plainte #{complaint.id.substring(0, 8)}</CardTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-2" />
-                Modifier
-              </Button>
-              <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                {deleting ? "Suppression..." : "Supprimer"}
-              </Button>
-            </div>
-          </div>
-          <CardDescription>
-            Enregistrée le {new Date(complaint.date).toLocaleDateString("fr-FR")} à{" "}
-            {new Date(complaint.date).toLocaleTimeString("fr-FR")}
-          </CardDescription>
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <FileText className="h-5 w-5 text-green-500" />
+            Description
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Parties impliquées</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Plainte déposée par :</p>
-                <p className="font-medium">{complaint.plaintiff.firstName} {complaint.plaintiff.lastName}</p>
-                <p className="text-xs text-muted-foreground">ID National: {complaint.plaintiff.nationalityID}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Accusé :</p>
-                {complaint.accused ? (
-                  <>
-                    <p className="font-medium">{complaint.accused.firstName} {complaint.accused.lastName}</p>
-                    <p className="text-xs text-muted-foreground">ID National: {complaint.accused.nationalityID}</p>
-                  </>
-                ) : (
-                  <p className="font-medium italic">Non spécifié</p>
-                )}
-              </div>
-            </div>
-          </div>
+        <CardContent>
+          <p className="text-base text-gray-700 dark:text-gray-300">{complaint.description}</p>
+        </CardContent>
+      </Card>
 
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Détails de l'incident</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Lieu :</p>
-                <p className="font-medium">{complaint.place}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Type de plainte :</p>
-                <p className="font-medium">{complaint.type}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Description :</p>
-              <p className="font-medium">{complaint.description}</p>
-            </div>
+      {(complaint.witnesses || complaint.evidence) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Users className="h-5 w-5 text-purple-500" />
+              Détails complémentaires
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {complaint.witnesses && (
-              <div>
-                <p className="text-sm text-muted-foreground">Témoins :</p>
-                <p className="font-medium">{complaint.witnesses}</p>
+              <div className="flex flex-col space-y-2">
+                <span className="text-sm font-medium text-muted-foreground">Présence de témoins:</span>
+                <Badge variant="outline" className="w-fit">
+                  Oui
+                </Badge>
               </div>
             )}
             {complaint.evidence && (
-              <div>
-                <p className="text-sm text-muted-foreground">Preuves :</p>
-                <p className="font-medium">{complaint.evidence}</p>
+              <div className="flex flex-col space-y-2">
+                <span className="text-sm font-medium text-muted-foreground">Présence de preuves:</span>
+                <Badge variant="outline" className="w-fit">
+                  Oui
+                </Badge>
               </div>
             )}
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Informations administratives</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Enregistrée par :</p>
-                <p className="font-medium">{complaint.policeOfficer.name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Statut :</p>
-                <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${
-                    statusColors[complaint.status as keyof typeof statusColors]
-                  }`}
-                >
-                  {complaint.status}
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
-  );
+  )
 }

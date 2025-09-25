@@ -1,206 +1,169 @@
-// app/dashboard/marriage-records/[id]/page.tsx
-"use client"
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  ArrowLeft,
+  Calendar,
+  User,
+  MapPin,
+  HeartHandshake,
+  Users,
+  Pen,
+} from "lucide-react"
 
-import { useState, useEffect } from "react";
-import { notFound } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Calendar, MapPin, PersonStanding, Users, X } from "lucide-react";
-import Link from "next/link";
-
-interface MarriageRecord {
-  id: string;
-  marriagePlace: string;
-  marriageDate: string;
-  marriageType: string;
-  contractType?: string;
-  partner1: {
-    firstName: string;
-    lastName: string;
-    nationalityID: string;
-  };
-  partner2: {
-    firstName: string;
-    lastName: string;
-    nationalityID: string;
-  };
-  officiant: {
-    username: string;
-  };
-  witness1?: {
-    firstName: string;
-    lastName: string;
-    nationalityID: string;
-  } | null;
-  witness2?: {
-    firstName: string;
-    lastName: string;
-    nationalityID: string;
-  } | null;
-  witness3?: {
-    firstName: string;
-    lastName: string;
-    nationalityID: string;
-  } | null;
-}
-
-interface MarriageRecordDetailsProps {
+interface MarriageRecordDetailsPageProps {
   params: {
-    id: string;
-  };
+    id: string
+  }
 }
 
-export default function MarriageRecordDetailsPage({ params }: MarriageRecordDetailsProps) {
-  const { id } = params;
-  const [marriageRecord, setMarriageRecord] = useState<MarriageRecord | null>(null);
-  const [loading, setLoading] = useState(true);
+async function getMarriageRecord(id: string) {
+  return await prisma.marriageRecord.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      partner1: true,
+      partner2: true,
+      officiant: true,
+      witness1: true,
+      witness2: true,
+      witness3: true,
+    },
+  })
+}
 
-  useEffect(() => {
-    const fetchRecord = async () => {
-      try {
-        const response = await fetch(`/api/marriage-records/${id}`);
-        if (!response.ok) {
-          notFound();
-        }
-        const data = await response.json();
-        setMarriageRecord(data);
-      } catch (error) {
-        console.error("Failed to fetch marriage record:", error);
-        notFound();
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRecord();
-  }, [id]);
-
-  if (loading) {
-    return <div className="text-center p-8">Chargement...</div>;
-  }
+export default async function MarriageRecordDetailsPage({ params }: MarriageRecordDetailsPageProps) {
+  const session = await getServerSession(authOptions)
+  const marriageRecord = await getMarriageRecord(params.id)
 
   if (!marriageRecord) {
-    // This case should ideally be handled by notFound(), but as a fallback
-    return <div className="text-center p-8">Acte de mariage non trouvé.</div>;
+    notFound()
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+  // Check if user can edit marriage records
+  const canEditMarriageRecord = session?.user?.roles?.some((role) =>
+    ["ADMIN", "OFFICIER_ETAT_CIVIL"].includes(role)
+  )
 
-  const renderCitizen = (citizen: any) => {
-    if (!citizen) return <span className="text-muted-foreground">N/A</span>;
-    return (
-      <span className="font-medium">
-        {citizen.firstName} {citizen.lastName} ({citizen.nationalityID})
-      </span>
-    );
-  };
-  
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/marriage-records">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold">Détails de l'Acte de Mariage</h1>
-          <p className="text-muted-foreground">Numéro d'enregistrement: {marriageRecord.id}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Link href="/dashboard/marriage-records">
+            <Button variant="outline" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Détails de l'acte de mariage</h1>
+            <p className="text-muted-foreground">Acte #{marriageRecord.id.slice(-8)}</p>
+          </div>
         </div>
+        {canEditMarriageRecord && (
+          <Link href={`/dashboard/marriage-records/${marriageRecord.id}/edit`}>
+            <Button variant="outline">
+              <Pen className="mr-2 h-4 w-4" />
+              Modifier
+            </Button>
+          </Link>
+        )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Informations principales</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">Date du mariage</p>
-                <p>{formatDate(marriageRecord.marriageDate)}</p>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <HeartHandshake className="h-5 w-5 text-primary" />
+              Informations sur le mariage
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Date:</span>
+              <span>{new Date(marriageRecord.marriageDate).toLocaleDateString("fr-FR")}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">Lieu du mariage</p>
-                <p>{marriageRecord.marriagePlace}</p>
-              </div>
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Lieu:</span>
+              <span>{marriageRecord.marriagePlace}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">Type de mariage</p>
-                <p>{marriageRecord.marriageType}</p>
-              </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="outline">{marriageRecord.marriageType}</Badge>
             </div>
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">Type de contrat</p>
-                <p>{marriageRecord.contractType || "Non spécifié"}</p>
+            {marriageRecord.contractType && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Régime:</span>
+                <span>{marriageRecord.contractType}</span>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Partenaires et Officier</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Époux</p>
-            {renderCitizen(marriageRecord.partner1)}
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Épouse</p>
-            {renderCitizen(marriageRecord.partner2)}
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Officier d'état civil</p>
-            <span>{marriageRecord.officiant.username}</span>
-          </div>
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Témoins</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Témoin 1</p>
-            {renderCitizen(marriageRecord.witness1)}
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Témoin 2</p>
-            {renderCitizen(marriageRecord.witness2)}
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Témoin 3</p>
-            {renderCitizen(marriageRecord.witness3)}
-          </div>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <User className="h-5 w-5 text-gray-500" />
+              Époux et Officier
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-muted-foreground">Époux 1:</span>
+              <span className="text-base font-semibold">
+                {marriageRecord.partner1.firstName} {marriageRecord.partner1.lastName}
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-muted-foreground">Époux 2:</span>
+              <span className="text-base font-semibold">
+                {marriageRecord.partner2.firstName} {marriageRecord.partner2.lastName}
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-muted-foreground">Officier:</span>
+              <span className="text-base font-semibold">{marriageRecord.officiant.username}</span>
+            </div>
+          </CardContent>
+        </Card>
 
-      <div className="flex justify-end">
-        <Link href={`/dashboard/marriage-records/${id}/generate`}>
-          <Button>
-            <FileText className="h-4 w-4 mr-2" />
-            Générer le PDF
-          </Button>
-        </Link>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Users className="h-5 w-5 text-purple-500" />
+              Témoins
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-muted-foreground">Témoin 1:</span>
+              <span className="text-base font-semibold">
+                {marriageRecord.witness1.firstName} {marriageRecord.witness1.lastName}
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-muted-foreground">Témoin 2:</span>
+              <span className="text-base font-semibold">
+                {marriageRecord.witness2.firstName} {marriageRecord.witness2.lastName}
+              </span>
+            </div>
+            {marriageRecord.witness3 && (
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-muted-foreground">Témoin 3:</span>
+                <span className="text-base font-semibold">
+                  {marriageRecord.witness3.firstName} {marriageRecord.witness3.lastName}
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
-  );
+  )
 }

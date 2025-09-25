@@ -197,8 +197,13 @@ export function FaceRecognition({ onMatch, onError }: FaceRecognitionProps) {
 
             {isProcessing && (
                 <Card>
-                    <CardContent className="p-6 flex items-center justify-center space-x-2">
-                        <Loader2 className="h-6 w-6 animate-spin" />
+                    <CardContent className="w-full h-96 space-y-6 p-2 ">
+                        {capturedImage && (
+                            <div className="w-auto h-4/5 rounded-lg overflow-hidden border">
+                                <img src={capturedImage} alt="Image capturée" className="object-cover w-full h-full" />
+                            </div>
+                        )}
+                        <Loader2 className="animate-spin" />
                         <span>Analyse de l'image en cours...</span>
                     </CardContent>
                 </Card>

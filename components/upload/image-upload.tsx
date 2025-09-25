@@ -202,7 +202,7 @@ export function ImageUpload({
                   Prendre une photo
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-auto">
                 <DialogHeader>
                   <DialogTitle>Capture Faciale</DialogTitle>
                   <DialogDescription>

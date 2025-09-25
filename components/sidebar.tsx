@@ -107,7 +107,7 @@ export function Sidebar({ className }: SidebarProps) {
       <ScrollArea className="flex-1 px-3">
         <div className="space-y-2 py-4">
           {navigation.map((item) => {
-            if (item.module && session?.user?.role && !canAccessModule(session.user.role as Role, item.module)) {
+            if (item.module && session?.user?.role[0] && !canAccessModule(session.user.role as Role, item.module)) {
               return null
             }
 

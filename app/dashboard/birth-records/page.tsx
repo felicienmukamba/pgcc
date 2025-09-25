@@ -5,9 +5,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, FileText, Calendar, MapPin, ExternalLink } from "lucide-react"
+import { Plus, Search, FileText, Calendar, MapPin, ExternalLink, UserPlus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { RoleGuard } from "@/components/auth/role-guard"
 
 interface BirthRecord {
   id: string
@@ -26,10 +27,12 @@ interface BirthRecord {
   }
 }
 
-export default function BirthRecordsPage() {
+export default async function BirthRecordsPage() {
   const [birthRecords, setBirthRecords] = useState<BirthRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+
+  
 
   const router = useRouter(); 
 
@@ -72,12 +75,14 @@ export default function BirthRecordsPage() {
           <h1 className="text-3xl font-bold text-foreground">Actes de Naissance</h1>
           <p className="text-muted-foreground">Gestion des actes de naissance et enregistrements civils</p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/birth-records/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvel Acte
-          </Link>
-        </Button>
+          <RoleGuard permission="birth.write">
+            <Link href="/dashboard/marriage-records/new">
+              <Button>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Nouvel Acte de naissance
+              </Button>
+            </Link>
+          </RoleGuard>
       </div>
 
       {/* Search */}

@@ -22,6 +22,7 @@ import {
   HeartHandshake,
   Skull,
   Scan,
+  ChevronRight, // Import the Chevron icon
 } from "lucide-react"
 
 interface NavItem {
@@ -35,7 +36,6 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: "Tableau de bord", href: "/dashboard", icon: Home },
-
   {
     name: "Gestion d'identité",
     icon: Users,
@@ -82,7 +82,6 @@ const navigation: NavItem[] = [
     module: "users",
     children: [
       { name: "Utilisateurs", href: "/dashboard/users", icon: Users, requiredPermission: "users.read" },
-      { name: "Paramètres", href: "/dashboard/settings", icon: Settings, requiredPermission: "users.write" },
     ],
   },
 ]
@@ -104,15 +103,19 @@ export function Sidebar({ className }: SidebarProps) {
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
-      <div className="flex h-14 items-center border-b px-4">
-        <h2 className="text-lg font-semibold text-primary">SGC</h2>
+      <div className="flex h-16 items-center border-b px-6">
+        <img
+          src="/img/logocongo.png"
+          alt="SGC logo"
+          className="h-10 w-auto object-contain"
+        />
+        <h2 className="sr-only">SGC</h2>
       </div>
-      <ScrollArea className="flex-1 px-3">
+      <ScrollArea className="flex-1 px-4">
         <div className="space-y-2 py-4">
           {navigation.map((item) => {
-            const role = session?.user?.role as Role | undefined
+            const role = session?.user?.roles as Role | undefined
 
-            // Si module ou permission non accessible → ne pas afficher
             if (
               (item.module && role && !canAccessModule(role, item.module)) ||
               (item.requiredPermission && role && !hasPermission(role, item.requiredPermission))
@@ -121,19 +124,29 @@ export function Sidebar({ className }: SidebarProps) {
             }
 
             if (item.children) {
-              const isOpen = openGroups.includes(item.name)
+              // Check if any child is active
+              const isChildActive = item.children?.some((child) => pathname.startsWith(child.href!))
+              const isOpen = openGroups.includes(item.name) || isChildActive
+              
               return (
                 <div key={item.name}>
                   <Button
-                    variant="ghost"
-                    className="w-full justify-start"
+                    variant={isChildActive ? "secondary" : "ghost"}
+                    className="w-full justify-start font-semibold"
                     onClick={() => toggleGroup(item.name)}
+                    aria-expanded={isOpen}
                   >
                     {item.icon && <item.icon className="mr-2 h-4 w-4" />}
-                    {item.name}
+                    <span className="flex-1 text-left">{item.name}</span>
+                    <ChevronRight
+                      className={cn(
+                        "h-4 w-4 shrink-0 transition-transform duration-200",
+                        isOpen && "rotate-90"
+                      )}
+                    />
                   </Button>
                   {isOpen && (
-                    <div className="ml-6 space-y-1">
+                    <div className="ml-6 space-y-1 p-1 rounded-sm bg-muted/30">
                       {item.children.map((child) => {
                         if (
                           role &&
@@ -145,7 +158,7 @@ export function Sidebar({ className }: SidebarProps) {
                         return (
                           <Link key={child.href} href={child.href!}>
                             <Button
-                              variant={pathname === child.href ? "secondary" : "ghost"}
+                              variant={pathname.startsWith(child.href!) ? "secondary" : "ghost"}
                               className="w-full justify-start text-sm"
                             >
                               {child.icon && <child.icon className="mr-2 h-3 w-3" />}
@@ -164,7 +177,7 @@ export function Sidebar({ className }: SidebarProps) {
               <Link key={item.name} href={item.href!}>
                 <Button
                   variant={pathname === item.href ? "secondary" : "ghost"}
-                  className="w-full justify-start"
+                  className="w-full justify-start font-semibold"
                 >
                   {item.icon && <item.icon className="mr-2 h-4 w-4" />}
                   {item.name}

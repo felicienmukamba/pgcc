@@ -20,7 +20,6 @@ export function RoleGuard({ children, permission, module, fallback }: RoleGuardP
   if (status === "loading") {
     return <div className="flex items-center justify-center p-8">Chargement...</div>
   }
-
   if (!session?.user) {
     return (
       fallback || (
@@ -38,12 +37,13 @@ export function RoleGuard({ children, permission, module, fallback }: RoleGuardP
   if (permission && !hasPermission(userRole, permission)) {
     return (
       fallback || (
-        <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
-          <ShieldX className="h-4 w-4" />
-          <AlertDescription>
-            Vous n'avez pas les permissions nécessaires pour accéder à cette ressource.
-          </AlertDescription>
-        </Alert>
+        // <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
+        //   <ShieldX className="h-4 w-4" />
+        //   <AlertDescription>
+        //     Vous n'avez pas les permissions nécessaires pour accéder à cette ressource.
+        //   </AlertDescription>
+        // </Alert>
+        <div></div>
       )
     )
   }

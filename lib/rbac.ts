@@ -21,6 +21,15 @@ export type Permission =
   | "users.write"
   | "users.delete"
   | "admin.all"
+    "birth.read"
+    "birth.write"
+    "birth.delete"
+    "marriage.read"
+    "marriage.write"
+    "marriage.delete"
+    "death.read"
+    "death.write"
+    "death.delete"
 
 // rôles RBAC utilisés côté code
 export type Role =
@@ -43,7 +52,7 @@ const PRISMA_TO_RBAC: Record<string, Role> = {
 // permissions par rôle RBAC
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ADMIN: ["admin.all"],
-  CIVIL_SERVANT: ["citizens.read", "citizens.write", "citizens.delete", "biometric.read", "biometric.write"],
+  CIVIL_SERVANT: ["citizens.read", "citizens.write", "citizens.delete", "biometric.read", "biometric.write", "birth.write", "marriage.write", "death.write", "birth.read", "marriage.read", "death.read"],
   MEDICAL_STAFF: [
     "citizens.read",
     "consultations.read",

@@ -1,6 +1,9 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+"use client"
+
+import { useEffect, useState } from "react"
+import { getServerSession } from "next-auth" // Note: This is a server-side import
+import { authOptions } from "@/lib/auth" // and cannot be used in a "use client" component.
+import { prisma } from "@/lib/prisma" // Same as above. You must fetch data on the client or pass it from a server component.
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,18 +12,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Search, UserPlus, Shield, Link } from "lucide-react"
 import { RoleGuard } from "@/components/auth/role-guard"
 
-async function getUsers() {
-  return await prisma.user.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 20,
-  })
+// This function needs to be a client-side function that fetches from the API
+const fetchUsers = async (searchTerm = "", role = "") => {
+  const params = new URLSearchParams()
+  if (role && role !== "all") {
+    params.set("role", role)
+  }
+  // Search by username or email logic would be added to the API route
+  // if (searchTerm) {
+  //   params.set("search", searchTerm);
+  // }
+  const res = await fetch(`/api/users?${params.toString()}`)
+  if (!res.ok) {
+    throw new Error("Failed to fetch users")
+  }
+  return res.json()
 }
 
-export default async function UsersPage() {
-  const session = await getServerSession(authOptions)
-  const users = await getUsers()
+export default function UsersPage() {
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [selectedRole, setSelectedRole] = useState("all")
+  const [searchTerm, setSearchTerm] = useState("")
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        setLoading(true)
+        const data = await fetchUsers(searchTerm, selectedRole)
+        setUsers(data)
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadUsers()
+  }, [selectedRole, searchTerm]) // Re-fetch when role or search term changes
 
   const getRoleLabel = (role: string) => {
     switch (role) {
@@ -43,13 +72,13 @@ export default async function UsersPage() {
     switch (role) {
       case "ADMIN":
         return "destructive"
-      case "CIVIL_SERVANT":
+      case "OFFICIER_ETAT_CIVIL":
         return "default"
-      case "MEDICAL_STAFF":
+      case "MEDECIN":
         return "secondary"
-      case "SECURITY_STAFF":
+      case "OPJ":
         return "outline"
-      case "VIEWER":
+      case "PROCUREUR":
         return "secondary"
       default:
         return "outline"
@@ -82,73 +111,80 @@ export default async function UsersPage() {
           <CardContent>
             <div className="flex gap-4">
               <div className="flex-1">
-                <Input placeholder="Rechercher par nom d'utilisateur ou email..." className="w-full" />
+                <Input
+                  placeholder="Rechercher par nom d'utilisateur ou email..."
+                  className="w-full"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-              <Select>
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Filtrer par rôle" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les rôles</SelectItem>
                   <SelectItem value="ADMIN">Administrateur</SelectItem>
-                  <SelectItem value="CIVIL_SERVANT">Fonctionnaire</SelectItem>
-                  <SelectItem value="MEDICAL_STAFF">Personnel médical</SelectItem>
-                  <SelectItem value="SECURITY_STAFF">Personnel sécurité</SelectItem>
-                  <SelectItem value="VIEWER">Observateur</SelectItem>
+                  <SelectItem value="OFFICIER_ETAT_CIVIL">Fonctionnaire</SelectItem>
+                  <SelectItem value="MEDECIN">Personnel médical</SelectItem>
+                  <SelectItem value="OPJ">Personnel sécurité</SelectItem>
+                  <SelectItem value="PROCUREUR">Personnel Justice</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline">
-                <Search className="mr-2 h-4 w-4" />
-                Rechercher
-              </Button>
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid gap-4">
-          {users.map((user) => (
-            <Card key={user.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Shield className="h-6 w-6 text-primary" />
+        {loading ? (
+          <p>Chargement...</p>
+        ) : error ? (
+          <p>Erreur: {error}</p>
+        ) : (
+          <div className="grid gap-4">
+            {users.map((user: any) => (
+              <Card key={user.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Shield className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold">{user.username}</h3>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant={getRoleColor(user.roles[0]) as any}>{getRoleLabel(user.roles[0])}</Badge>
+                          <Badge variant="outline">{user.enabled ? "Actif" : "Inactif"}</Badge>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold">{user.username}</h3>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
-                      <div className="flex gap-2 mt-2">
-                        <Badge variant={getRoleColor(user.roles[0]) as any}>{getRoleLabel(user.roles[0])}</Badge>
-                        <Badge variant="outline">{user.enabled ? "Actif" : "Inactif"}</Badge>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">
+                        Créé le {new Date(user.createdAt).toLocaleDateString("fr-FR")}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Dernière connexion:{" "}
+                        {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString("fr-FR") : "Jamais"}
+                      </p>
+                      <div className="mt-2 space-x-2">
+                        <RoleGuard permission="users.write">
+                          <Button variant="outline" size="sm">
+                            <Link href={`/dashboard/users/${user.id}`}>Modifier</Link>
+                          </Button>
+                        </RoleGuard>
+                        <Button variant="outline" size="sm">
+                          <Link href={`/dashboard/users/${user.id}`}>Voir détails</Link>
+                        </Button>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">
-                      Créé le {new Date(user.createdAt).toLocaleDateString("fr-FR")}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Dernière connexion:{" "}
-                      {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString("fr-FR") : "Jamais"}
-                    </p>
-                    <div className="mt-2 space-x-2">
-                      <RoleGuard permission="users.write">
-                        <Button variant="outline" size="sm">
-                          Modifier
-                        </Button>
-                      </RoleGuard>
-                      <Button variant="outline" size="sm">
-                        Voir détails
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-        {users.length === 0 && (
+        {!loading && users.length === 0 && (
           <Card>
             <CardContent className="p-12 text-center">
               <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
