@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { UserPlus, Search, Filter } from "lucide-react"
+import { UserPlus, Search, Filter, Pencil } from "lucide-react" // Added Pencil icon
 import { Input } from "@/components/ui/input"
 import { RoleGuard } from "@/components/auth/role-guard"
 
@@ -40,6 +40,7 @@ export default async function CitizensPage() {
       case "SINGLE":
         return "Célibataire"
       case "MARRIED":
+      case "COHABITATION": // Assuming COHABITATION might also be a status
         return "Marié(e)"
       case "DIVORCED":
         return "Divorcé(e)"
@@ -121,7 +122,16 @@ export default async function CitizensPage() {
                       Né(e) le {new Date(citizen.birthDate).toLocaleDateString("fr-FR")}
                     </p>
                     <p className="text-sm text-muted-foreground">à {citizen.birthPlace}</p>
-                    <div className="mt-2">
+                    {/* Updated button group to include the Edit button */}
+                    <div className="mt-2 flex justify-end gap-2">
+                      <RoleGuard permission="citizens.write">
+                        <Link href={`/dashboard/citizens/${citizen.id}/edit`}>
+                          <Button variant="secondary" size="sm">
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Modifier
+                          </Button>
+                        </Link>
+                      </RoleGuard>
                       <Link href={`/dashboard/citizens/${citizen.id}`}>
                         <Button variant="outline" size="sm">
                           Voir détails

@@ -21,15 +21,16 @@ export type Permission =
   | "users.write"
   | "users.delete"
   | "admin.all"
-    "birth.read"
-    "birth.write"
-    "birth.delete"
-    "marriage.read"
-    "marriage.write"
-    "marriage.delete"
-    "death.read"
-    "death.write"
-    "death.delete"
+  // 👈 CORRECTION: Ajout de l'opérateur '|'
+  | "birth.read"
+  | "birth.write"
+  | "birth.delete"
+  | "marriage.read"
+  | "marriage.write"
+  | "marriage.delete"
+  | "death.read"
+  | "death.write"
+  | "death.delete"; // 👈 Ajout du point-virgule final
 
 // rôles RBAC utilisés côté code
 export type Role =
@@ -37,7 +38,7 @@ export type Role =
   | "CIVIL_SERVANT"
   | "MEDICAL_STAFF"
   | "SECURITY_STAFF"
-  | "VIEWER"
+  | "VIEWER";
 
 // mapping Prisma enum -> RBAC type
 const PRISMA_TO_RBAC: Record<string, Role> = {
@@ -52,7 +53,23 @@ const PRISMA_TO_RBAC: Record<string, Role> = {
 // permissions par rôle RBAC
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ADMIN: ["admin.all"],
-  CIVIL_SERVANT: ["citizens.read", "citizens.write", "citizens.delete", "biometric.read", "biometric.write", "birth.write", "marriage.write", "death.write", "birth.read", "marriage.read", "death.read"],
+  // 👈 CORRECTION: Vérification de l'intégrité du tableau
+  CIVIL_SERVANT: [
+    "citizens.read", 
+    "citizens.write", 
+    "citizens.delete", 
+    "biometric.read", 
+    "biometric.write", 
+    "birth.read", 
+    "birth.write", 
+    "birth.delete", // Ajout de delete si nécessaire
+    "marriage.read", 
+    "marriage.write", 
+    "marriage.delete", // Ajout de delete si nécessaire
+    "death.read",
+    "death.write",
+    "death.delete", // Ajout de delete si nécessaire
+  ],
   MEDICAL_STAFF: [
     "citizens.read",
     "consultations.read",
@@ -102,7 +119,10 @@ export function hasPermission(userRole: string, permission: Permission): boolean
  * @param module nom du module ("citizens", "consultations", ...)
  */
 export function canAccessModule(userRole: string, module: string): boolean {
-  switch (module) {
+  // Extraction de la partie principale du module (ex: "citizens" de "citizens.read")
+  const moduleName = module.split(".")[0]; 
+
+  switch (moduleName) {
     case "citizens":
       return hasPermission(userRole, "citizens.read")
     case "consultations":
@@ -117,6 +137,13 @@ export function canAccessModule(userRole: string, module: string): boolean {
       return hasPermission(userRole, "biometric.read")
     case "users":
       return hasPermission(userRole, "users.read")
+    // 👈 Ajout des nouveaux modules (État Civil)
+    case "birth":
+      return hasPermission(userRole, "birth.read")
+    case "marriage":
+      return hasPermission(userRole, "marriage.read")
+    case "death":
+      return hasPermission(userRole, "death.read")
     default:
       return false
   }

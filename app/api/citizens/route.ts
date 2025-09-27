@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import bcrypt from "bcryptjs"
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json()
+    const hashedPassword = await bcrypt.hash(data.nationalityID, 10)
 
     // Create user account first
     const user = await prisma.user.create({
@@ -26,6 +28,16 @@ export async function POST(request: NextRequest) {
         email: `${data.nationalityID}@gov.local`, // Temporary email
         username: `${data.firstName.toLowerCase()}.${data.lastName.toLowerCase()}`,
         roles: ["CITOYEN"],
+      },
+    })
+
+    await prisma.account.create({
+      data: {
+      userId: user.id,
+      type: "credentials",
+      provider: "credentials",
+      providerAccountId: user.email,
+      access_token: hashedPassword,
       },
     })
 

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { canAccessModule, hasPermission, type Role, type Permission } from "@/lib/rbac"
+import { RoleGuard } from "@/components/auth/role-guard" // Assurez-vous d'importer RoleGuard
 import {
   Users,
   FileText,
@@ -22,7 +23,8 @@ import {
   HeartHandshake,
   Skull,
   Scan,
-  ChevronRight, // Import the Chevron icon
+  ChevronRight,
+  Plus, // N'oubliez pas d'importer l'icône Plus
 } from "lucide-react"
 
 interface NavItem {
@@ -50,9 +52,9 @@ const navigation: NavItem[] = [
     icon: FileText,
     module: "citizens",
     children: [
-      { name: "Actes de naissance", href: "/dashboard/birth-records", icon: Baby, requiredPermission: "citizens.read" },
-      { name: "Actes de mariage", href: "/dashboard/marriage-records", icon: HeartHandshake, requiredPermission: "citizens.read" },
-      { name: "Actes de décès", href: "/dashboard/death-records", icon: Skull, requiredPermission: "citizens.read" },
+      { name: "Actes de naissance", href: "/dashboard/birth-records", icon: Baby, requiredPermission: "birth.read" },
+      { name: "Actes de mariage", href: "/dashboard/marriage-records", icon: HeartHandshake, requiredPermission: "marriage.read" },
+      { name: "Actes de décès", href: "/dashboard/death-records", icon: Skull, requiredPermission: "death.read" },
     ],
   },
   {
@@ -109,12 +111,25 @@ export function Sidebar({ className }: SidebarProps) {
           alt="SGC logo"
           className="h-10 w-auto object-contain"
         />
-        <h2 className="sr-only">SGC</h2>
+        <div className="ml-3 flex flex-col">
+          <h2 className="text-lg font-semibold leading-none">SGC</h2>
+        </div>
       </div>
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-2 py-4">
           {navigation.map((item) => {
-            const role = session?.user?.roles as Role | undefined
+            const role = session?.user?.roles[0] as Role | undefined // Assurez-vous de récupérer le rôle correctement (e.g., le premier)
+
+            if (!role) {
+                // Si l'utilisateur n'est pas connecté ou n'a pas de rôle, on ne montre rien
+                // Sauf si l'élément de navigation ne nécessite pas de permission/module (comme le Tableau de bord)
+                if (!item.module && !item.requiredPermission) {
+                    // Continue pour afficher le Tableau de bord
+                } else {
+                    return null
+                }
+            }
+
 
             if (
               (item.module && role && !canAccessModule(role, item.module)) ||
@@ -127,7 +142,18 @@ export function Sidebar({ className }: SidebarProps) {
               // Check if any child is active
               const isChildActive = item.children?.some((child) => pathname.startsWith(child.href!))
               const isOpen = openGroups.includes(item.name) || isChildActive
+
+              // Filtrer les enfants qui n'ont pas la permission
+              const visibleChildren = item.children.filter(child => 
+                  !child.requiredPermission || !role || hasPermission(role, child.requiredPermission)
+              );
               
+              // Si le groupe n'a pas d'enfants visibles, on ne l'affiche pas (sauf si c'est le Tableau de bord)
+              if (item.name !== "Tableau de bord" && visibleChildren.length === 0 && !isOpen) {
+                  return null;
+              }
+
+
               return (
                 <div key={item.name}>
                   <Button
@@ -147,14 +173,8 @@ export function Sidebar({ className }: SidebarProps) {
                   </Button>
                   {isOpen && (
                     <div className="ml-6 space-y-1 p-1 rounded-sm bg-muted/30">
-                      {item.children.map((child) => {
-                        if (
-                          role &&
-                          child.requiredPermission &&
-                          !hasPermission(role, child.requiredPermission)
-                        ) {
-                          return null
-                        }
+                      {visibleChildren.map((child) => {
+                        // La vérification de permission a déjà été faite dans visibleChildren
                         return (
                           <Link key={child.href} href={child.href!}>
                             <Button
@@ -167,6 +187,21 @@ export function Sidebar({ className }: SidebarProps) {
                           </Link>
                         )
                       })}
+
+                      {/* AJOUT DU BOUTON CONDITIONNEL 'Nouvelle Consultation' */}
+                      {item.name === "Santé" && (
+                        <RoleGuard permission="consultations.write">
+                          <Link href="/dashboard/consultations/new">
+                            <Button
+                              variant="ghost" // Utilisez 'ghost' pour le style
+                              className="w-full justify-start text-sm text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-500"
+                            >
+                              <Plus className="mr-2 h-3 w-3" />
+                              Nouvelle consultation
+                            </Button>
+                          </Link>
+                        </RoleGuard>
+                      )}
                     </div>
                   )}
                 </div>

@@ -4,24 +4,47 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
+// Liste des rôles valides pour la validation manuelle
+const VALID_ROLES = ["ADMIN", "OFFICIER_ETAT_CIVIL", "MEDECIN", "OPJ", "PROCUREUR", "VIEWER", "CITOYEN"]
+
+// GET: Récupérer tous les utilisateurs avec filtre et recherche
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !session.user.roles.includes("ADMIN")) { // Example role check
+    if (!session || !session.user?.roles.includes("ADMIN")) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
     const role = searchParams.get("role")
+    const search = searchParams.get("search")
 
-    let whereClause = {}
-    if (role) {
-      whereClause = {
-        roles: {
-          has: role,
-        },
+    let whereClause: any = {}
+
+    // 1. Filtrer par rôle
+    if (role && role !== "all") {
+      whereClause.roles = {
+        has: role,
       }
+    }
+
+    // 2. Recherche par nom d'utilisateur ou email
+    if (search) {
+      whereClause.OR = [
+        {
+          username: {
+            contains: search,
+            mode: "insensitive", // Recherche insensible à la casse
+          },
+        },
+        {
+          email: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      ]
     }
 
     const users = await prisma.user.findMany({
@@ -32,6 +55,8 @@ export async function GET(request: NextRequest) {
         email: true,
         roles: true,
         enabled: true,
+        createdAt: true,
+        updatedAt: true,
       },
       orderBy: {
         username: "asc",

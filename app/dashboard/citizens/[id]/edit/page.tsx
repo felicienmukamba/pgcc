@@ -1,9 +1,8 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,23 +10,28 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Save, ArrowLeft } from "lucide-react"
-import Link from "next/link"
 
-export default function NewCitizenPage() {
+// Define the required props for the page component
+export default function EditCitizenPage({ params }: { params: { id: string } }) {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const citizenId = params.id
 
+  const [loading, setLoading] = useState(false) // For save/update button
+  const [isFetching, setIsFetching] = useState(true) // For initial data load
+  const [error, setError] = useState("")
+  const [notFound, setNotFound] = useState(false)
+  const [citizenName, setCitizenName] = useState("...")
+
+  // Initial state structure matching the form
   const [formData, setFormData] = useState({
     // Informations personnelles
     firstName: "",
     lastName: "",
     maidenName: "",
-    birthDate: "",
+    birthDate: "", // YYYY-MM-DD format
     birthPlace: "",
-    nationalityID: "",
     nationality: "NATIONAL",
     gender: "",
     ethnicGroup: "",
@@ -59,6 +63,76 @@ export default function NewCitizenPage() {
     voterStatus: "",
   })
 
+  // Helper function to convert Date object/string to YYYY-MM-DD string for input[type=date]
+  const formatDate = (dateString: string | Date | null): string => {
+    if (!dateString) return ""
+    const date = new Date(dateString)
+    return date.toISOString().split("T")[0]
+  }
+
+  // Effect to fetch existing data on component mount
+  useEffect(() => {
+    const fetchCitizenData = async () => {
+      setIsFetching(true)
+      setError("")
+      try {
+        const response = await fetch(`/api/citizens/${citizenId}`)
+        if (response.status === 404) {
+          setNotFound(true)
+          return
+        }
+        if (!response.ok) {
+          throw new Error("Erreur lors du chargement des données du citoyen.")
+        }
+
+        const citizenData = await response.json()
+        setCitizenName(`${citizenData.firstName} ${citizenData.lastName}`)
+
+        // Map fetched data to formData state, ensuring nulls/undefined are handled
+        setFormData({
+          firstName: citizenData.firstName || "",
+          lastName: citizenData.lastName || "",
+          maidenName: citizenData.maidenName || "",
+          birthDate: formatDate(citizenData.birthDate), // Format date
+          birthPlace: citizenData.birthPlace || "",
+          nationality: citizenData.nationality || "NATIONAL",
+          gender: citizenData.gender || "",
+          ethnicGroup: citizenData.ethnicGroup || "",
+          community: citizenData.community || "",
+          territory: citizenData.territory || "",
+
+          currentAddress: citizenData.currentAddress || "",
+          phoneNumber: citizenData.phoneNumber || "",
+          emergencyContactName: citizenData.emergencyContactName || "",
+          emergencyContactPhone: citizenData.emergencyContactPhone || "",
+
+          bloodType: citizenData.bloodType || "",
+          disabilities: citizenData.disabilities || "",
+
+          educationLevel: citizenData.educationLevel || "",
+          profession: citizenData.profession || "",
+          occupation: citizenData.occupation || "",
+          religion: citizenData.religion || "",
+          maritalStatus: citizenData.maritalStatus || "SINGLE",
+
+          taxIdentificationNumber: citizenData.taxIdentificationNumber || "",
+          socialSecurityNumber: citizenData.socialSecurityNumber || "",
+          drivingLicenseNumber: citizenData.drivingLicenseNumber || "",
+          passportNumber: citizenData.passportNumber || "",
+          voterStatus: citizenData.voterStatus || "",
+        })
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Impossible de charger les données. Veuillez réessayer.")
+      } finally {
+        setIsFetching(false)
+      }
+    }
+
+    if (citizenId) {
+      fetchCitizenData()
+    }
+  }, [citizenId])
+
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
@@ -69,8 +143,8 @@ export default function NewCitizenPage() {
     setError("")
 
     try {
-      const response = await fetch("/api/citizens", {
-        method: "POST",
+      const response = await fetch(`/api/citizens/${citizenId}`, {
+        method: "PUT", // Use PUT for updating an existing resource
         headers: {
           "Content-Type": "application/json",
         },
@@ -78,33 +152,59 @@ export default function NewCitizenPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Erreur lors de l'enregistrement")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Erreur lors de la mise à jour")
       }
 
       const citizen = await response.json()
+      // Redirect to the citizen's detail page after successful update
       router.push(`/dashboard/citizens/${citizen.id}`)
-    } catch (error) {
-      setError("Une erreur est survenue lors de l'enregistrement")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue lors de la mise à jour.")
     } finally {
       setLoading(false)
     }
   }
 
+  if (isFetching) {
+    return (
+      <div className="flex justify-center items-center h-48">
+        <p className="text-xl text-gray-500">Chargement des données du citoyen...</p>
+      </div>
+    )
+  }
+
+  if (notFound) {
+    return (
+      <div className="text-center py-20 bg-card rounded-xl shadow-lg m-10">
+        <Alert variant="destructive" className="max-w-md mx-auto">
+          <AlertTitle>Citoyen non trouvé</AlertTitle>
+          <AlertDescription>Aucun citoyen avec l'ID #{citizenId} n'a été trouvé.</AlertDescription>
+        </Alert>
+        <Link href="/dashboard/citizens" className="mt-6 inline-block">
+          <Button>Retour à la liste des citoyens</Button>
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/citizens">
+        <Link href={`/dashboard/citizens/${citizenId}`}>
           <Button variant="outline" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Nouveau citoyen</h1>
-          <p className="text-muted-foreground">Enregistrer un nouveau citoyen dans le système</p>
+          <h1 className="text-3xl font-bold tracking-tight">Modifier citoyen: {citizenName}</h1>
+          <p className="text-muted-foreground">
+            Mettre à jour les informations du citoyen #<span className="font-mono">{citizenId}</span>
+          </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs defaultValue="personal" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="personal">Informations personnelles</TabsTrigger>
@@ -140,20 +240,11 @@ export default function NewCitizenPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="maidenName">Prenom</Label>
+                    <Label htmlFor="maidenName">Nom de jeune fille/précédent</Label>
                     <Input
                       id="maidenName"
                       value={formData.maidenName}
                       onChange={(e) => handleInputChange("maidenName", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="nationalityID">ID National *</Label>
-                    <Input
-                      id="nationalityID"
-                      value={formData.nationalityID}
-                      onChange={(e) => handleInputChange("nationalityID", e.target.value)}
-                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -177,7 +268,7 @@ export default function NewCitizenPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gender">Genre *</Label>
-                    <Select value={formData.gender} onValueChange={(value) => handleInputChange("gender", value)}>
+                    <Select value={formData.gender} onValueChange={(value) => handleInputChange("gender", value)} required>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner le genre" />
                       </SelectTrigger>
@@ -193,6 +284,7 @@ export default function NewCitizenPage() {
                     <Select
                       value={formData.nationality}
                       onValueChange={(value) => handleInputChange("nationality", value)}
+                      required
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -202,6 +294,30 @@ export default function NewCitizenPage() {
                         <SelectItem value="FOREIGN">Étranger</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ethnicGroup">Groupe ethnique</Label>
+                    <Input
+                      id="ethnicGroup"
+                      value={formData.ethnicGroup}
+                      onChange={(e) => handleInputChange("ethnicGroup", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="community">Communauté</Label>
+                    <Input
+                      id="community"
+                      value={formData.community}
+                      onChange={(e) => handleInputChange("community", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="territory">Territoire</Label>
+                    <Input
+                      id="territory"
+                      value={formData.territory}
+                      onChange={(e) => handleInputChange("territory", e.target.value)}
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -313,6 +429,22 @@ export default function NewCitizenPage() {
                       onChange={(e) => handleInputChange("educationLevel", e.target.value)}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="occupation">Occupation</Label>
+                    <Input
+                      id="occupation"
+                      value={formData.occupation}
+                      onChange={(e) => handleInputChange("occupation", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="religion">Religion</Label>
+                    <Input
+                      id="religion"
+                      value={formData.religion}
+                      onChange={(e) => handleInputChange("religion", e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="disabilities">Handicaps ou conditions médicales</Label>
@@ -387,12 +519,14 @@ export default function NewCitizenPage() {
         )}
 
         <div className="flex justify-end gap-4">
-          <Link href="/dashboard/citizens">
-            <Button variant="outline">Annuler</Button>
+          <Link href={`/dashboard/citizens/${citizenId}`}>
+            <Button variant="outline" disabled={loading}>
+              Annuler
+            </Button>
           </Link>
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading || isFetching}>
             <Save className="mr-2 h-4 w-4" />
-            {loading ? "Enregistrement..." : "Enregistrer le citoyen"}
+            {loading ? "Mise à jour..." : "Mettre à jour le citoyen"}
           </Button>
         </div>
       </form>

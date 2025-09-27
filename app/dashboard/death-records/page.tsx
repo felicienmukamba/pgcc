@@ -74,7 +74,7 @@ export default async function DeathRecordsPage() {
           <h1 className="text-3xl font-bold text-foreground">Actes de Décès</h1>
           <p className="text-muted-foreground">Gestion des actes de décès et enregistrements mortuaires</p>
         </div>
-          <RoleGuard permission="citizens.write">
+          <RoleGuard permission="death.write">
             <Link href="/dashboard/death-records/new">
               <Button>
                 <UserPlus className="mr-2 h-4 w-4" />

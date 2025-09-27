@@ -65,11 +65,6 @@ export function Header() {
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
               <Link href="/dashboard/profile"><span>Profil</span></Link>
-              
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Paramètres</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut()}>

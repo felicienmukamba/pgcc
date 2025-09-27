@@ -129,7 +129,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         birthPlace: data.birthPlace,
         nationality: data.nationality,
         gender: data.gender,
-        ethnicGroup: data.ethnicGroup || null,
+        // ethnicGroup: data.ethnicGroup || null,
         community: data.community || null,
         territory: data.territory || null,
         currentAddress: data.currentAddress,
@@ -159,5 +159,32 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   } catch (error) {
     console.error("Error updating citizen:", error)
     return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+    }
+
+    // Check if user has permission to delete citizens (assuming only ADMIN can delete)
+    const hasPermission = session.user.roles.includes("ADMIN")
+
+    if (!hasPermission) {
+      return NextResponse.json({ error: "Permissions insuffisantes" }, { status: 403 })
+    }
+
+    await prisma.citizen.delete({
+      where: { id: params.id },
+    })
+
+    return NextResponse.json({ message: "Citoyen supprimé avec succès" }, { status: 200 })
+  } catch (error) {
+    console.error("Error deleting citizen:", error)
+    // Handle record not found error (P2025) more gracefully if required
+    return NextResponse.json({ error: "Erreur interne du serveur lors de la suppression" }, { status: 500 })
   }
 }

@@ -1,14 +1,12 @@
-"use client"
-
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { Card } from "@/components/ui/card"
-import { ProfileImageUpload } from "@/components/profile/profile-image-upload"
-import { ProfileForm } from "@/components/profile/profile-form"
+import { ProfilePageClientWrapper } from "@/components/profile/ProfilePageClientWrapper"
+// 👈 Import du Client Wrapper
+
 async function getUserProfile() {
   const session = await getServerSession(authOptions)
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return null
   }
 
@@ -23,42 +21,30 @@ async function getUserProfile() {
       createdAt: true,
     },
   })
-  return user
+
+  if (!user) {
+    return null;
+  }
+  
+  // CRUCIAL : Sérialiser l'objet Date en string (ISO) pour le Client Component
+  return {
+    ...user,
+    createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
+  };
 }
 
 export default async function UserProfilePage() {
   const profile = await getUserProfile()
 
   if (!profile) {
-    return <div className="flex items-center justify-center h-screen text-lg font-semibold">Profil non trouvé.</div>
+    return <div className="flex items-center justify-center h-screen text-lg font-semibold text-red-600">
+      Erreur de chargement du profil. Veuillez vous reconnecter.
+    </div>
   }
-
+  
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Mon Profil</h1>
-      </div>
-
-      <Card className="md:grid md:grid-cols-3">
-        <div className="flex flex-col items-center justify-center p-6 border-b md:border-b-0 md:border-r">
-          <ProfileImageUpload
-            currentImage={profile.image || null}
-            username={profile.username}
-            onImageUpdated={(newImage) => {
-
-              // Optionally handle image update (e.g., re-fetch profile data)
-              console.log("Image de profil mise à jour :", newImage)
-            }}
-          />
-        </div>
-
-        <ProfileForm
-          initialData={{
-            username: profile.username,
-            email: profile.email,
-          }}
-        />
-      </Card>
+    <div className="container max-w-4xl mx-auto py-1">
+      <ProfilePageClientWrapper initialProfile={profile} />
     </div>
   )
 }

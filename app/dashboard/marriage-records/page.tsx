@@ -77,11 +77,11 @@ export default async function MarriageRecordsPage() {
           <h1 className="text-3xl font-bold text-foreground">Actes de Mariage</h1>
           <p className="text-muted-foreground">Gestion des actes de mariage et unions civiles</p>
         </div>
-          <RoleGuard permission="citizens.write">
+          <RoleGuard permission="marriage.write">
             <Link href="/dashboard/marriage-records/new">
               <Button>
                 <UserPlus className="mr-2 h-4 w-4" />
-                Nouvel Acte
+                Nouvel Acte de mariage
               </Button>
             </Link>
           </RoleGuard>

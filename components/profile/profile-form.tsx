@@ -1,11 +1,10 @@
-// components/profile-form.tsx
 "use client"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Save } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 
@@ -47,12 +46,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       
       toast({
         title: "Succès",
-        description: "Profil mis à jour avec succès.",
+        description: "Vos informations de profil ont été mises à jour.",
       })
     } catch (error: any) {
       toast({
         title: "Erreur",
-        description: error.message,
+        description: error.message || "Une erreur inconnue est survenue lors de la sauvegarde.",
         variant: "destructive",
       })
     } finally {
@@ -63,8 +62,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   return (
     <div className="md:col-span-2">
       <CardHeader>
-        <CardTitle>Détails du profil</CardTitle>
-        <CardDescription>Mettez à jour vos informations personnelles.</CardDescription>
+        <CardTitle className="text-2xl font-semibold">Détails du compte</CardTitle>
+        <CardDescription>Modifiez votre nom d'utilisateur et votre adresse e-mail.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleProfileSubmit} className="space-y-6">
@@ -91,30 +90,11 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="department">Département</Label>
-              <Input
-                id="department"
-                name="department"
-                value={formData.department || ""}
-                onChange={handleInputChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="position">Poste</Label>
-              <Input
-                id="position"
-                name="position"
-                value={formData.position || ""}
-                onChange={handleInputChange}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end">
+          
+          <div className="flex justify-end pt-4">
             <Button type="submit" disabled={isSaving}>
               {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              {isSaving ? "Enregistrement..." : "Sauvegarder"}
+              {isSaving ? "Enregistrement..." : "Sauvegarder les modifications"}
             </Button>
           </div>
         </form>
