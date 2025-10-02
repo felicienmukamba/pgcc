@@ -100,7 +100,7 @@ export default function BirthRecordDetailPage({ params }: { params: { id: string
           <ArrowLeft className="h-4 w-4 mr-2" />
           Retour à la liste
         </Button>
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
             <Button>
               <Plus className="h-4 w-4 mr-2" />
               Générer le PDF
@@ -109,7 +109,7 @@ export default function BirthRecordDetailPage({ params }: { params: { id: string
               <Download className="h-4 w-4 mr-2" />
               Télécharger le PDF
             </Button>
-        </div>
+        </div> */}
       </div>
 
       <Card>

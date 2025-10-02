@@ -92,12 +92,12 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "biometric.write",
   ],
   VIEWER: [
-    "citizens.read",
-    "consultations.read",
-    "prescriptions.read",
+    // "citizens.read",
+    // "consultations.read",
+    // "prescriptions.read",
     "complaints.read",
-    "convictions.read",
-    "biometric.read",
+    // "convictions.read",
+    // "biometric.read",
   ],
 }
 

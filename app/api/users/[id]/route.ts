@@ -7,7 +7,6 @@ import bcrypt from "bcryptjs"
 // Liste des rôles valides pour la validation manuelle
 const VALID_ROLES = ["ADMIN", "OFFICIER_ETAT_CIVIL", "MEDECIN", "OPJ", "PROCUREUR", "VIEWER", "CITOYEN"]
 
-
 // GET: Récupérer un utilisateur unique (Aucun changement nécessaire ici, mais inclus pour la complétude)
 export async function GET(
   request: NextRequest,

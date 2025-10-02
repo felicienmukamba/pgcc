@@ -88,12 +88,14 @@ export default function NewComplaintPage() {
       const response = await fetch("/api/users?role=OPJ")
       if (response.ok) {
         const data = await response.json()
+        console.log(data)
         setOfficers(data)
       }
     } catch (error) {
       console.error("Error fetching officers:", error)
     }
   }
+
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
