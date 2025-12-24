@@ -94,7 +94,7 @@ function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
     }
 
     return (
-        <div ref={ref} className="text-4xl md:text-5xl font-black text-white">
+        <div ref={ref} className="text-4xl md:text-5xl font-black text-foreground">
             {formatNumber(count)}{suffix}
         </div>
     )
@@ -102,19 +102,19 @@ function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
 
 export function StatsSection() {
     return (
-        <section className="py-20 bg-slate-950 relative overflow-hidden">
+        <section className="py-20 bg-muted/30 relative overflow-hidden">
             {/* Decorative */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-blue-500/5 rounded-full blur-[120px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/5 rounded-full blur-[120px]" />
 
             <div className="container mx-auto px-4 relative z-10">
                 <div className="text-center mb-16">
-                    <span className="inline-block px-4 py-1.5 bg-blue-500/10 text-blue-400 text-sm font-semibold rounded-full mb-4">
+                    <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-sm font-semibold rounded-full mb-4">
                         ÉCHELLE NATIONALE
                     </span>
-                    <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
+                    <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4">
                         La RDC en Chiffres
                     </h2>
-                    <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                         Une plateforme conçue pour servir l'un des plus grands pays d'Afrique
                     </p>
                 </div>
@@ -123,14 +123,14 @@ export function StatsSection() {
                     {stats.map((stat, idx) => (
                         <div
                             key={idx}
-                            className="group relative bg-slate-900/50 border border-slate-800 rounded-2xl p-6 text-center hover:border-blue-500/50 transition-all hover:bg-slate-900/80"
+                            className="group relative bg-card border border-border rounded-2xl p-6 text-center hover:border-primary/50 transition-all hover:shadow-lg"
                         >
-                            <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-blue-500/10 text-blue-400 mb-4 group-hover:scale-110 transition-transform">
+                            <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10 text-primary mb-4 group-hover:scale-110 transition-transform">
                                 <stat.icon className="h-6 w-6" />
                             </div>
                             <AnimatedCounter value={stat.value} suffix={stat.suffix} />
-                            <p className="text-white font-semibold mt-2">{stat.label}</p>
-                            <p className="text-slate-500 text-sm mt-1">{stat.description}</p>
+                            <p className="text-foreground font-semibold mt-2">{stat.label}</p>
+                            <p className="text-muted-foreground text-sm mt-1">{stat.description}</p>
                         </div>
                     ))}
                 </div>

@@ -42,13 +42,13 @@ const features = [
 
 export function FeaturesSection() {
     return (
-        <section className="py-24 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+        <section className="py-24 bg-muted/30 border-t border-border">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
                         Une Infrastructure Technologique de Pointe
                     </h2>
-                    <p className="text-lg text-slate-600 dark:text-slate-400">
+                    <p className="text-lg text-muted-foreground">
                         Conçu pour répondre aux défis modernes de l'identification et de la gouvernance numérique.
                     </p>
                 </div>
@@ -57,15 +57,15 @@ export function FeaturesSection() {
                     {features.map((feature, index) => (
                         <div
                             key={index}
-                            className="group p-8 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                            className="group p-8 rounded-2xl bg-card border border-border hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                         >
-                            <div className="h-12 w-12 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                                 <feature.icon className="h-6 w-6" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+                            <h3 className="text-xl font-bold text-foreground mb-3">
                                 {feature.title}
                             </h3>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                            <p className="text-muted-foreground leading-relaxed">
                                 {feature.description}
                             </p>
                         </div>

@@ -95,19 +95,19 @@ export function ComparisonCarousel() {
     const current = comparisons[currentIndex]
 
     return (
-        <section className="py-24 bg-gradient-to-b from-slate-900 to-slate-950 relative overflow-hidden">
+        <section className="py-24 bg-muted/50 relative overflow-hidden">
             {/* Background Pattern */}
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMyMDIwMjAiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIwOS0xLjc5MS00LTQtNHMtNCAxLjc5MS00IDQgMS43OTEgNCA0IDQgNC0xLjc5MSA0LTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMyMDIwMjAiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0YzAtMi4yMDktMS43OTEtNC00LTRzLTQgMS43OTEtNCA0IDEuNzkxIDQgNCA0IDQtMS43OTEgNC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
 
             <div className="container mx-auto px-4 relative z-10">
                 <div className="text-center mb-16">
-                    <span className="inline-block px-4 py-1.5 bg-blue-500/10 text-blue-400 text-sm font-semibold rounded-full mb-4">
+                    <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-sm font-semibold rounded-full mb-4">
                         AVANT / APRÈS
                     </span>
-                    <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+                    <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4">
                         La Transformation Digitale
                     </h2>
-                    <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+                    <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                         Découvrez comment PGCC modernise les services publics de la RDC
                     </p>
                 </div>
@@ -117,19 +117,19 @@ export function ComparisonCarousel() {
                     {/* Navigation Buttons */}
                     <button
                         onClick={goToPrev}
-                        className="absolute -left-4 md:-left-12 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                        className="absolute -left-4 md:-left-12 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full bg-card border border-border flex items-center justify-center text-foreground hover:bg-muted transition-colors shadow-lg"
                     >
                         <ChevronLeft className="h-6 w-6" />
                     </button>
                     <button
                         onClick={goToNext}
-                        className="absolute -right-4 md:-right-12 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                        className="absolute -right-4 md:-right-12 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full bg-card border border-border flex items-center justify-center text-foreground hover:bg-muted transition-colors shadow-lg"
                     >
                         <ChevronRight className="h-6 w-6" />
                     </button>
 
                     {/* Title */}
-                    <h3 className="text-2xl md:text-3xl font-bold text-white text-center mb-8">
+                    <h3 className="text-2xl md:text-3xl font-bold text-foreground text-center mb-8">
                         {current.title}
                     </h3>
 
@@ -138,14 +138,14 @@ export function ComparisonCarousel() {
                         {/* BEFORE */}
                         <div className="relative group">
                             <div className="absolute -inset-1 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl blur-lg opacity-25 group-hover:opacity-40 transition-opacity" />
-                            <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800">
+                            <div className="relative bg-card rounded-2xl overflow-hidden border border-border shadow-lg">
                                 <div className="relative h-64 overflow-hidden">
                                     <img
                                         src={current.before.image}
                                         alt="Avant"
                                         className="w-full h-full object-cover filter grayscale brightness-75"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
                                     <div className="absolute top-4 left-4">
                                         <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/90 text-white text-sm font-bold rounded-full">
                                             <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
@@ -154,8 +154,8 @@ export function ComparisonCarousel() {
                                     </div>
                                 </div>
                                 <div className="p-6">
-                                    <p className="text-slate-300 text-lg mb-4">{current.before.description}</p>
-                                    <div className="flex items-center gap-3 text-red-400">
+                                    <p className="text-foreground text-lg mb-4">{current.before.description}</p>
+                                    <div className="flex items-center gap-3 text-red-500">
                                         <current.before.icon className="h-5 w-5" />
                                         <span className="font-semibold">{current.before.pain}</span>
                                     </div>
@@ -165,25 +165,25 @@ export function ComparisonCarousel() {
 
                         {/* AFTER */}
                         <div className="relative group">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl blur-lg opacity-25 group-hover:opacity-40 transition-opacity" />
-                            <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-green-500 to-primary rounded-2xl blur-lg opacity-25 group-hover:opacity-40 transition-opacity" />
+                            <div className="relative bg-card rounded-2xl overflow-hidden border border-border shadow-lg">
                                 <div className="relative h-64 overflow-hidden">
                                     <img
                                         src={current.after.image}
                                         alt="Après"
                                         className="w-full h-full object-cover"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
                                     <div className="absolute top-4 left-4">
-                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/90 text-white text-sm font-bold rounded-full">
+                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-500/90 text-white text-sm font-bold rounded-full">
                                             <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
                                             APRÈS
                                         </span>
                                     </div>
                                 </div>
                                 <div className="p-6">
-                                    <p className="text-slate-300 text-lg mb-4">{current.after.description}</p>
-                                    <div className="flex items-center gap-3 text-emerald-400">
+                                    <p className="text-foreground text-lg mb-4">{current.after.description}</p>
+                                    <div className="flex items-center gap-3 text-green-500">
                                         <current.after.icon className="h-5 w-5" />
                                         <span className="font-semibold">{current.after.benefit}</span>
                                     </div>
@@ -201,7 +201,7 @@ export function ComparisonCarousel() {
                                     setIsAutoPlaying(false)
                                     setCurrentIndex(idx)
                                 }}
-                                className={`h-2 rounded-full transition-all ${idx === currentIndex ? "w-8 bg-blue-500" : "w-2 bg-slate-700 hover:bg-slate-600"
+                                className={`h-2 rounded-full transition-all ${idx === currentIndex ? "w-8 bg-primary" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                                     }`}
                             />
                         ))}

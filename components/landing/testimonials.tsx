@@ -61,20 +61,20 @@ export function TestimonialsSection() {
     }
 
     return (
-        <section className="py-24 bg-gradient-to-b from-slate-950 to-slate-900 relative overflow-hidden">
+        <section className="py-24 bg-background relative overflow-hidden">
             {/* Decorative */}
-            <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px]" />
-            <div className="absolute top-1/2 right-0 -translate-y-1/2 w-96 h-96 bg-emerald-500/5 rounded-full blur-[100px]" />
+            <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-primary/5 rounded-full blur-[100px]" />
+            <div className="absolute top-1/2 right-0 -translate-y-1/2 w-96 h-96 bg-green-500/5 rounded-full blur-[100px]" />
 
             <div className="container mx-auto px-4 relative z-10">
                 <div className="text-center mb-16">
-                    <span className="inline-block px-4 py-1.5 bg-emerald-500/10 text-emerald-400 text-sm font-semibold rounded-full mb-4">
+                    <span className="inline-block px-4 py-1.5 bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-semibold rounded-full mb-4">
                         TÉMOIGNAGES
                     </span>
-                    <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+                    <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4">
                         Ce Qu'ils Disent de PGCC
                     </h2>
-                    <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+                    <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                         Utilisateurs à travers la RDC partagent leur expérience
                     </p>
                 </div>
@@ -83,20 +83,20 @@ export function TestimonialsSection() {
                     {/* Navigation */}
                     <button
                         onClick={goToPrev}
-                        className="absolute -left-4 md:-left-16 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-white hover:bg-slate-700 transition-colors"
+                        className="absolute -left-4 md:-left-16 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full bg-card border border-border flex items-center justify-center text-foreground hover:bg-muted transition-colors"
                     >
                         <ChevronLeft className="h-5 w-5" />
                     </button>
                     <button
                         onClick={goToNext}
-                        className="absolute -right-4 md:-right-16 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-white hover:bg-slate-700 transition-colors"
+                        className="absolute -right-4 md:-right-16 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full bg-card border border-border flex items-center justify-center text-foreground hover:bg-muted transition-colors"
                     >
                         <ChevronRight className="h-5 w-5" />
                     </button>
 
                     {/* Testimonial Card */}
-                    <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-3xl p-8 md:p-12 relative">
-                        <Quote className="absolute top-8 left-8 h-12 w-12 text-blue-500/20" />
+                    <div className="bg-card border border-border rounded-3xl p-8 md:p-12 relative shadow-lg">
+                        <Quote className="absolute top-8 left-8 h-12 w-12 text-primary/20" />
 
                         <div className="text-center">
                             {/* Avatar */}
@@ -104,9 +104,9 @@ export function TestimonialsSection() {
                                 <img
                                     src={testimonials[currentIndex].image}
                                     alt={testimonials[currentIndex].name}
-                                    className="h-20 w-20 rounded-full object-cover border-4 border-slate-800"
+                                    className="h-20 w-20 rounded-full object-cover border-4 border-border"
                                 />
-                                <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                                <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-green-500 flex items-center justify-center">
                                     <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
@@ -121,14 +121,14 @@ export function TestimonialsSection() {
                             </div>
 
                             {/* Quote */}
-                            <blockquote className="text-xl md:text-2xl text-white font-medium leading-relaxed mb-8 italic">
+                            <blockquote className="text-xl md:text-2xl text-foreground font-medium leading-relaxed mb-8 italic">
                                 "{testimonials[currentIndex].quote}"
                             </blockquote>
 
                             {/* Author */}
                             <div>
-                                <p className="text-lg font-bold text-white">{testimonials[currentIndex].name}</p>
-                                <p className="text-slate-400">{testimonials[currentIndex].role}</p>
+                                <p className="text-lg font-bold text-foreground">{testimonials[currentIndex].name}</p>
+                                <p className="text-muted-foreground">{testimonials[currentIndex].role}</p>
                             </div>
                         </div>
                     </div>
@@ -142,7 +142,7 @@ export function TestimonialsSection() {
                                     setIsAutoPlaying(false)
                                     setCurrentIndex(idx)
                                 }}
-                                className={`h-2 rounded-full transition-all ${idx === currentIndex ? "w-8 bg-emerald-500" : "w-2 bg-slate-700 hover:bg-slate-600"
+                                className={`h-2 rounded-full transition-all ${idx === currentIndex ? "w-8 bg-green-500" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                                     }`}
                             />
                         ))}

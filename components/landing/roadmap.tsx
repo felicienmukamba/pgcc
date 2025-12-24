@@ -97,19 +97,19 @@ const upcomingFeatures = [
 
 export function RoadmapSection() {
     return (
-        <section className="py-24 bg-slate-900 relative overflow-hidden">
+        <section className="py-24 bg-muted/30 relative overflow-hidden">
             {/* Background */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:40px_40px] opacity-20" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:40px_40px] opacity-30" />
 
             <div className="container mx-auto px-4 relative z-10">
                 <div className="text-center mb-16">
-                    <span className="inline-block px-4 py-1.5 bg-emerald-500/10 text-emerald-400 text-sm font-semibold rounded-full mb-4">
+                    <span className="inline-block px-4 py-1.5 bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-semibold rounded-full mb-4">
                         FONCTIONNALITÉS
                     </span>
-                    <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+                    <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4">
                         Ce Qui Est Déjà Opérationnel
                     </h2>
-                    <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+                    <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                         L'infrastructure numérique du Congo est en marche
                     </p>
                 </div>
@@ -119,28 +119,28 @@ export function RoadmapSection() {
                     {implementedFeatures.map((feature, idx) => (
                         <div
                             key={idx}
-                            className="group p-6 bg-slate-800/50 border border-emerald-500/20 rounded-2xl hover:border-emerald-500/40 transition-all relative overflow-hidden"
+                            className="group p-6 bg-card border border-green-500/20 rounded-2xl hover:border-green-500/40 transition-all relative overflow-hidden shadow-sm hover:shadow-md"
                         >
                             <div className="absolute top-3 right-3">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-full">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-bold rounded-full">
                                     <CheckCircle2 className="h-3 w-3" />
                                     Actif
                                 </span>
                             </div>
-                            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                <feature.icon className="h-6 w-6 text-emerald-400" />
+                            <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <feature.icon className="h-6 w-6 text-green-600 dark:text-green-400" />
                             </div>
-                            <h3 className="text-lg font-bold text-white mb-2">{feature.title}</h3>
-                            <p className="text-slate-400 text-sm">{feature.description}</p>
+                            <h3 className="text-lg font-bold text-foreground mb-2">{feature.title}</h3>
+                            <p className="text-muted-foreground text-sm">{feature.description}</p>
                         </div>
                     ))}
                 </div>
 
                 {/* Divider */}
                 <div className="flex items-center gap-4 mb-16">
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent to-slate-700" />
-                    <span className="text-slate-500 font-semibold uppercase tracking-widest text-sm">Prochainement</span>
-                    <div className="flex-1 h-px bg-gradient-to-l from-transparent to-slate-700" />
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent to-border" />
+                    <span className="text-muted-foreground font-semibold uppercase tracking-widest text-sm">Prochainement</span>
+                    <div className="flex-1 h-px bg-gradient-to-l from-transparent to-border" />
                 </div>
 
                 {/* Upcoming Features */}
@@ -148,19 +148,19 @@ export function RoadmapSection() {
                     {upcomingFeatures.map((feature, idx) => (
                         <div
                             key={idx}
-                            className="group p-6 bg-slate-800/30 border border-slate-700/50 rounded-2xl hover:border-blue-500/30 transition-all relative overflow-hidden"
+                            className="group p-6 bg-card/50 border border-border rounded-2xl hover:border-primary/30 transition-all relative overflow-hidden"
                         >
                             <div className="absolute top-3 right-3">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs font-bold rounded-full">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/20 text-primary text-xs font-bold rounded-full">
                                     <Clock className="h-3 w-3" />
                                     Bientôt
                                 </span>
                             </div>
-                            <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform opacity-60 group-hover:opacity-100">
-                                <feature.icon className="h-6 w-6 text-blue-400" />
+                            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform opacity-60 group-hover:opacity-100">
+                                <feature.icon className="h-6 w-6 text-primary" />
                             </div>
-                            <h3 className="text-lg font-bold text-white/80 mb-2">{feature.title}</h3>
-                            <p className="text-slate-500 text-sm">{feature.description}</p>
+                            <h3 className="text-lg font-bold text-foreground/80 mb-2">{feature.title}</h3>
+                            <p className="text-muted-foreground text-sm">{feature.description}</p>
                         </div>
                     ))}
                 </div>
