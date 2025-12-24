@@ -11,6 +11,8 @@ import { User, Calendar, MapPin, Phone, Mail, Heart, Shield, FileText, Camera } 
 import Image from "next/image"
 import Link from "next/link"
 
+import { CitizenCardDisplay } from "@/components/CitizenCardDisplay";
+
 // Définir des sous-interfaces pour les données incluses
 interface BirthRecord {
     id: string;
@@ -259,6 +261,29 @@ export default function CitizenDetailPage() {
 
                 <TabsContent value="biometric" className="space-y-4">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="lg:col-span-2">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Générateur de Carte Nationale</CardTitle>
+                                    <CardDescription>Générez et téléchargez la carte d'identité au format PDF.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <CitizenCardDisplay 
+                                        citizen={{
+                                            firstName: citizen.firstName,
+                                            lastName: citizen.lastName,
+                                            nationalityID: citizen.nationalityID,
+                                            birthDate: citizen.birthDate,
+                                            birthPlace: citizen.birthPlace,
+                                            gender: citizen.gender,
+                                            maritalStatus: citizen.maritalStatus,
+                                            nationality: citizen.nationality,
+                                            imagePath: citizen.images.length > 0 ? citizen.images[0].path : undefined,
+                                        }}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </div>
                         {/* Current Images */}
                         <Card>
                             <CardHeader>

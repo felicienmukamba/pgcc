@@ -4,13 +4,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Suspense } from "react"
 import "./globals.css"
-import { Inter as _Inter } from "next/font/google"
 
-const Inter = _Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-})
 
 export const metadata: Metadata = {
   title: "Système de Gestion des Citoyens",
@@ -25,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`font-sans ${Inter.variable}`}>
+      <body className={`font-sans Roboto`}>
         <Suspense fallback={null}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             {children}

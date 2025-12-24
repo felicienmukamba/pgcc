@@ -6,8 +6,9 @@ import * as faceapi from "face-api.js";
 import { Canvas, Image, ImageData, loadImage } from "canvas";
 import path from "path";
 
-// Patch face-api.js pour Node.js
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+
+//  ICI ON FAIT UN LOAD DE MODEL FACE API
 
 let modelsLoaded = false;
 async function loadModels() {
@@ -22,6 +23,8 @@ async function loadModels() {
     console.log("✅ Modèles Face-API chargés.");
   }
 }
+
+//  ICI ON RECUPERE L'IMAGE CAPTURE OU IMPORTER
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,6 +47,8 @@ export async function POST(request: NextRequest) {
     if (!image) {
       return NextResponse.json({ error: "Image Base64 requise" }, { status: 400 });
     }
+
+    //  ICI ON FORMART L'IMAGE
 
     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(base64Data, "base64");
@@ -90,6 +95,9 @@ export async function POST(request: NextRequest) {
     
     // Le seuil de 0.6 est un bon point de départ, vous pouvez l'ajuster
     const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+
+
+    //  ICI ON RECUPERE LA PERSONNES IDENTIFIE
 
     const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
 

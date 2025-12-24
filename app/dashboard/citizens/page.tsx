@@ -1,55 +1,82 @@
-import Link from "next/link"
+// app/dashboard/citizens/page.tsx
 import { prisma } from "@/lib/prisma"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { UserPlus, Search, Filter, Pencil } from "lucide-react" // Added Pencil icon
-import { Input } from "@/components/ui/input"
 import { RoleGuard } from "@/components/auth/role-guard"
+import { UserPlus } from "lucide-react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
-async function getCitizens() {
-  return await prisma.citizen.findMany({
-    include: {
-      user: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 20,
-  })
+// Importez le composant client (à créer)
+import { CitizensTableWrapper } from "./citizens-table-wrapper"
+
+// Définition des types pour les paramètres de recherche
+interface CitizensPageProps {
+  searchParams: {
+    page?: string
+    search?: string
+    gender?: string
+    status?: string
+  }
 }
 
-export default async function CitizensPage() {
-  const citizens = await getCitizens()
+const ITEMS_PER_PAGE = 10 // Limite de pagination
 
-  const getGenderLabel = (gender: string) => {
-    switch (gender) {
-      case "MALE":
-        return "Homme"
-      case "FEMALE":
-        return "Femme"
-      case "OTHER":
-        return "Autre"
-      default:
-        return gender
-    }
+// --- Server Data Fetching ---
+async function getCitizens(
+  page: number,
+  searchTerm: string,
+  genderFilter: string,
+  statusFilter: string
+) {
+  const skip = (page - 1) * ITEMS_PER_PAGE
+
+  // Construction de la clause WHERE basée sur la recherche et les filtres
+  const where: any = {
+    // Recherche
+    ...(searchTerm && {
+      OR: [
+        { firstName: { contains: searchTerm, mode: 'insensitive' } },
+        { lastName: { contains: searchTerm, mode: 'insensitive' } },
+        { nationalityID: { contains: searchTerm, mode: 'insensitive' } },
+      ],
+    }),
+    // Filtre Genre
+    ...(genderFilter && genderFilter !== 'ALL' && { gender: genderFilter }),
+    // Filtre Statut Marital
+    ...(statusFilter && statusFilter !== 'ALL' && { maritalStatus: statusFilter }),
   }
 
-  const getMaritalStatusLabel = (status: string) => {
-    switch (status) {
-      case "SINGLE":
-        return "Célibataire"
-      case "MARRIED":
-      case "COHABITATION": // Assuming COHABITATION might also be a status
-        return "Marié(e)"
-      case "DIVORCED":
-        return "Divorcé(e)"
-      case "WIDOWED":
-        return "Veuf/Veuve"
-      default:
-        return status
-    }
+  // Utilisation de $transaction pour garantir la cohérence des données (liste + total)
+  const [citizens, totalCitizens] = await prisma.$transaction([
+    prisma.citizen.findMany({
+      where,
+      include: {
+        user: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip: skip,
+      take: ITEMS_PER_PAGE,
+    }),
+    prisma.citizen.count({ where }),
+  ])
+
+  return {
+    citizens,
+    totalPages: Math.ceil(totalCitizens / ITEMS_PER_PAGE),
+    currentPage: page,
   }
+}
+
+export default async function CitizensPage({ searchParams }: CitizensPageProps) {
+  // Parsing des paramètres de recherche
+  const currentPage = parseInt(searchParams.page || "1")
+  const searchTerm = searchParams.search || ""
+  const genderFilter = searchParams.gender || ""
+  const statusFilter = searchParams.status || ""
+
+  // Récupération des données avec filtres et pagination
+  const data = await getCitizens(currentPage, searchTerm, genderFilter, statusFilter)
 
   return (
     <RoleGuard module="citizens">
@@ -69,103 +96,15 @@ export default async function CitizensPage() {
           </RoleGuard>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recherche et filtres</CardTitle>
-            <CardDescription>Trouvez rapidement un citoyen</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Input placeholder="Rechercher par nom, prénom, ou ID national..." className="w-full" />
-              </div>
-              <Button variant="outline">
-                <Search className="mr-2 h-4 w-4" />
-                Rechercher
-              </Button>
-              <Button variant="outline">
-                <Filter className="mr-2 h-4 w-4" />
-                Filtres
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-4">
-          {citizens.map((citizen) => (
-            <Card key={citizen.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                      <span className="text-primary font-semibold">
-                        {citizen.firstName[0]}
-                        {citizen.lastName[0]}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold">
-                        {citizen.firstName} {citizen.lastName}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">ID: {citizen.nationalityID}</p>
-                      <div className="flex gap-2 mt-1">
-                        <Badge variant="secondary">{getGenderLabel(citizen.gender)}</Badge>
-                        <Badge variant="outline">{getMaritalStatusLabel(citizen.maritalStatus)}</Badge>
-                        <Badge variant={citizen.nationality === "NATIONAL" ? "default" : "secondary"}>
-                          {citizen.nationality === "NATIONAL" ? "National" : "Étranger"}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">
-                      Né(e) le {new Date(citizen.birthDate).toLocaleDateString("fr-FR")}
-                    </p>
-                    <p className="text-sm text-muted-foreground">à {citizen.birthPlace}</p>
-                    {/* Updated button group to include the Edit button */}
-                    <div className="mt-2 flex justify-end gap-2">
-                      <RoleGuard permission="citizens.write">
-                        <Link href={`/dashboard/citizens/${citizen.id}/edit`}>
-                          <Button variant="secondary" size="sm">
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Modifier
-                          </Button>
-                        </Link>
-                      </RoleGuard>
-                      <Link href={`/dashboard/citizens/${citizen.id}`}>
-                        <Button variant="outline" size="sm">
-                          Voir détails
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {citizens.length === 0 && (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                <UserPlus className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Aucun citoyen enregistré</h3>
-              <p className="text-muted-foreground mb-4">
-                Commencez par enregistrer votre premier citoyen dans le système.
-              </p>
-              <RoleGuard permission="citizens.write">
-                <Link href="/dashboard/citizens/new">
-                  <Button>
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Nouveau citoyen
-                  </Button>
-                </Link>
-              </RoleGuard>
-            </CardContent>
-          </Card>
-        )}
+        {/* Passage des données et des paramètres au composant client */}
+        <CitizensTableWrapper 
+          initialCitizens={data.citizens}
+          totalPages={data.totalPages}
+          currentPage={data.currentPage}
+          currentSearchTerm={searchTerm}
+          currentGender={genderFilter}
+          currentStatus={statusFilter}
+        />
       </div>
     </RoleGuard>
   )

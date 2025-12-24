@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Save, ArrowLeft } from "lucide-react"
 
+import { NATIONALITIES } from "@/lib/nationalities"
+
 // Define the required props for the page component
 export default function EditCitizenPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -32,7 +34,7 @@ export default function EditCitizenPage({ params }: { params: { id: string } }) 
     maidenName: "",
     birthDate: "", // YYYY-MM-DD format
     birthPlace: "",
-    nationality: "NATIONAL",
+    nationality: "CONGOLAISE",
     gender: "",
     ethnicGroup: "",
     community: "",
@@ -284,14 +286,17 @@ export default function EditCitizenPage({ params }: { params: { id: string } }) 
                     <Select
                       value={formData.nationality}
                       onValueChange={(value) => handleInputChange("nationality", value)}
-                      required
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Sélectionner la nationalité" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="NATIONAL">National</SelectItem>
-                        <SelectItem value="FOREIGN">Étranger</SelectItem>
+                        {/* Mappage sur la nouvelle liste de nationalités */}
+                        {NATIONALITIES.map((nat) => (
+                          <SelectItem key={nat.value} value={nat.value}>
+                            {nat.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

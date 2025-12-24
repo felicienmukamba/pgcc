@@ -27,14 +27,13 @@ interface BirthRecord {
   }
 }
 
-export default async function BirthRecordsPage() {
+// CORRECTION: Retirer le mot-clé 'async' car c'est un Client Component.
+export default function BirthRecordsPage() {
   const [birthRecords, setBirthRecords] = useState<BirthRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
 
-  
-
-  const router = useRouter(); 
+  const router = useRouter()
 
   useEffect(() => {
     fetchBirthRecords()
@@ -42,10 +41,15 @@ export default async function BirthRecordsPage() {
 
   const fetchBirthRecords = async () => {
     try {
+      // NOTE: Dans un vrai projet Next.js, cette route API doit être implémentée
+      // pour retourner les données des actes de naissance.
       const response = await fetch("/api/birth-records")
       if (response.ok) {
         const data = await response.json()
         setBirthRecords(data)
+      } else {
+        // Gérer les erreurs de réponse non-OK
+        console.error("Failed to fetch birth records:", response.statusText)
       }
     } catch (error) {
       console.error("Error fetching birth records:", error)
@@ -58,7 +62,7 @@ export default async function BirthRecordsPage() {
     (record.childName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (record.registrationNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (record.birthPlace || '').toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  )
 
   if (loading) {
     return (
@@ -75,14 +79,15 @@ export default async function BirthRecordsPage() {
           <h1 className="text-3xl font-bold text-foreground">Actes de Naissance</h1>
           <p className="text-muted-foreground">Gestion des actes de naissance et enregistrements civils</p>
         </div>
-          <RoleGuard permission="birth.write">
-            <Link href="/dashboard/marriage-records/new">
-              <Button>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Nouvel Acte de naissance
-              </Button>
-            </Link>
-          </RoleGuard>
+        <RoleGuard permission="birth.write">
+          {/* CORRECTION: Le lien pointait vers /dashboard/marriage-records/new */}
+          <Link href="/dashboard/birth-records/new">
+            <Button>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Nouvel Acte de naissance
+            </Button>
+          </Link>
+        </RoleGuard>
       </div>
 
       {/* Search */}
@@ -121,12 +126,12 @@ export default async function BirthRecordsPage() {
 
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      <span>{new Date(record.birthDate).toLocaleDateString("fr-FR")}</span>
+                      <span>Né(e) le {new Date(record.birthDate).toLocaleDateString("fr-FR")}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
-                      <span>{record.birthPlace}</span>
+                      <span>à {record.birthPlace}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -141,14 +146,14 @@ export default async function BirthRecordsPage() {
                     Enregistré le {new Date(record.date).toLocaleDateString("fr-FR")}
                   </p>
                   <p>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => router.push(`/dashboard/birth-records/${record.id}`)}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Voir plus
-                      </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => router.push(`/dashboard/birth-records/${record.id}`)}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Voir détails
+                    </Button>
                   </p>
                 </div>
               </div>
@@ -157,20 +162,25 @@ export default async function BirthRecordsPage() {
         ))}
       </div>
 
+      {/* Empty State */}
       {filteredRecords.length === 0 && (
         <Card>
           <CardContent className="pt-6 text-center">
             <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Aucun acte de naissance trouvé</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {searchTerm ? "Aucun acte de naissance trouvé" : "Aucun acte de naissance enregistré"}
+            </h3>
             <p className="text-muted-foreground mb-4">
-              {searchTerm ? "Aucun résultat pour votre recherche." : "Commencez par créer un nouvel acte de naissance."}
+              {searchTerm ? "Aucun résultat pour votre recherche. Veuillez vérifier l'orthographe ou les critères." : "Commencez par créer un nouvel acte de naissance."}
             </p>
-            <Button asChild>
-              <Link href="/dashboard/birth-records/new">
-                <Plus className="h-4 w-4 mr-2" />
-                Créer un Acte
-              </Link>
-            </Button>
+            <RoleGuard permission="birth.write">
+              <Button asChild>
+                <Link href="/dashboard/birth-records/new">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Créer un Acte
+                </Link>
+              </Button>
+            </RoleGuard>
           </CardContent>
         </Card>
       )}

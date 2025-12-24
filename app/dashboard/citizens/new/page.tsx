@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Save, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { NATIONALITIES } from "@/lib/nationalities"
+
 
 export default function NewCitizenPage() {
   const router = useRouter()
@@ -28,7 +30,8 @@ export default function NewCitizenPage() {
     birthDate: "",
     birthPlace: "",
     nationalityID: "",
-    nationality: "NATIONAL",
+    // J'ai conservé CONGOLAISE comme valeur par défaut, mais vous pouvez la changer si nécessaire
+    nationality: "CONGOLAISE", 
     gender: "",
     ethnicGroup: "",
     community: "",
@@ -78,13 +81,17 @@ export default function NewCitizenPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Erreur lors de l'enregistrement")
+        // Tente de lire l'erreur du serveur si elle est disponible
+        const errorData = await response.json().catch(() => ({ message: "Erreur lors de l'enregistrement" }));
+        throw new Error(errorData.message || "Erreur lors de l'enregistrement");
       }
 
       const citizen = await response.json()
       router.push(`/dashboard/citizens/${citizen.id}`)
     } catch (error) {
-      setError("Une erreur est survenue lors de l'enregistrement")
+        // Assurez-vous d'afficher l'erreur en string
+        const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue lors de l'enregistrement";
+        setError(errorMessage);
     } finally {
       setLoading(false)
     }
@@ -140,7 +147,8 @@ export default function NewCitizenPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="maidenName">Prenom</Label>
+                    {/* J'ai renommé le label pour plus de clarté car il y avait une confusion avec "Prénom" */}
+                    <Label htmlFor="maidenName">Nom de jeune fille / 2ème Prénom</Label>
                     <Input
                       id="maidenName"
                       value={formData.maidenName}
@@ -195,11 +203,15 @@ export default function NewCitizenPage() {
                       onValueChange={(value) => handleInputChange("nationality", value)}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Sélectionner la nationalité" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="NATIONAL">National</SelectItem>
-                        <SelectItem value="FOREIGN">Étranger</SelectItem>
+                        {/* Mappage sur la nouvelle liste de nationalités */}
+                        {NATIONALITIES.map((nat) => (
+                          <SelectItem key={nat.value} value={nat.value}>
+                            {nat.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -381,12 +393,12 @@ export default function NewCitizenPage() {
         </Tabs>
 
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="my-6">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        <div className="flex justify-end gap-4">
+        <div className="flex justify-end gap-4 mt-6">
           <Link href="/dashboard/citizens">
             <Button variant="outline">Annuler</Button>
           </Link>
