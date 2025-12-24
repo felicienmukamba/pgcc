@@ -30,7 +30,13 @@ export type Permission =
   | "marriage.delete"
   | "death.read"
   | "death.write"
-  | "death.delete"; // 👈 Ajout du point-virgule final
+  | "death.delete"
+  | "divorce.read"
+  | "divorce.write"
+  | "divorce.delete"
+  | "exam.read"
+  | "exam.write"
+  | "exam.delete";
 
 // rôles RBAC utilisés côté code
 export type Role =
@@ -55,20 +61,23 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ADMIN: ["admin.all"],
   // 👈 CORRECTION: Vérification de l'intégrité du tableau
   CIVIL_SERVANT: [
-    "citizens.read", 
-    "citizens.write", 
-    "citizens.delete", 
-    "biometric.read", 
-    "biometric.write", 
-    "birth.read", 
-    "birth.write", 
+    "citizens.read",
+    "citizens.write",
+    "citizens.delete",
+    "biometric.read",
+    "biometric.write",
+    "birth.read",
+    "birth.write",
     "birth.delete", // Ajout de delete si nécessaire
-    "marriage.read", 
-    "marriage.write", 
+    "marriage.read",
+    "marriage.write",
     "marriage.delete", // Ajout de delete si nécessaire
     "death.read",
     "death.write",
-    "death.delete", // Ajout de delete si nécessaire
+    "death.delete",
+    "divorce.read",
+    "divorce.write",
+    "divorce.delete",
   ],
   MEDICAL_STAFF: [
     "citizens.read",
@@ -79,6 +88,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "prescriptions.write",
     "prescriptions.delete",
     "biometric.read",
+    "exam.read",
+    "exam.write",
+    "exam.delete",
   ],
   SECURITY_STAFF: [
     "citizens.read",
@@ -120,7 +132,7 @@ export function hasPermission(userRole: string, permission: Permission): boolean
  */
 export function canAccessModule(userRole: string, module: string): boolean {
   // Extraction de la partie principale du module (ex: "citizens" de "citizens.read")
-  const moduleName = module.split(".")[0]; 
+  const moduleName = module.split(".")[0];
 
   switch (moduleName) {
     case "citizens":
@@ -144,6 +156,10 @@ export function canAccessModule(userRole: string, module: string): boolean {
       return hasPermission(userRole, "marriage.read")
     case "death":
       return hasPermission(userRole, "death.read")
+    case "divorce":
+      return hasPermission(userRole, "divorce.read")
+    case "exam":
+      return hasPermission(userRole, "exam.read")
     default:
       return false
   }

@@ -345,6 +345,8 @@ model User {
   consultationsAsDoctor      Consultation[]   @relation("Doctor")
   complaintsAsOfficer        Complaint[]      @relation("PoliceOfficer")
   convictionsAsProsecutor    Conviction[]     @relation("Prosecutor")
+  divorceRecordsAsOfficiant  DivorceRecord[]  @relation("DivorceOfficiant")
+  medicalExamsAsDoctor       MedicalExam[]    @relation("DoctorExam")
 
   @@map("users")
 }
@@ -417,6 +419,11 @@ model Citizen {
   filedComplaints          Complaint[]         @relation("Plaintiff")
   receivedComplaints       Complaint[]         @relation("Accused")
   convictions              Conviction[]        @relation("Convicted")
+  divorcesAsPartner1       DivorceRecord[]     @relation("DivorcePartner1")
+  divorcesAsPartner2       DivorceRecord[]     @relation("DivorcePartner2")
+  divorceWitness1          DivorceRecord[]     @relation("DivorceWitness1")
+  divorceWitness2          DivorceRecord[]     @relation("DivorceWitness2")
+  medicalExams             MedicalExam[]       @relation("PatientExam")
   webauthnCredentials      WebAuthnCredential[]
   faceDescriptors          FaceDescriptor[]
 
@@ -522,6 +529,7 @@ model Consultation {
   doctor         User          @relation("Doctor", fields: [doctorId], references: [id])
   patient        Citizen       @relation("Patient", fields: [patientId], references: [id])
   prescriptions Prescription[]
+  medicalExams  MedicalExam[]
 
   @@map("consultations")
 }
@@ -530,7 +538,7 @@ model Prescription {
   id             String   @id @default(cuid())
   date           DateTime @default(now())
   dosage         String
-  duration       String
+  duration         String
   quantity       String
   status         String
   consultationId String?
@@ -641,4 +649,48 @@ model FingerprintEmbedding {
   citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Cascade)
 
   @@map("fingerprint_embeddings")
+}
+
+model DivorceRecord {
+  id                 String   @id @default(cuid())
+  registrationNumber String   @unique
+  partner1Id         String
+  partner2Id         String
+  marriageRecordId   String?  @unique
+  divorceDate        DateTime
+  divorcePlace       String
+  officiantId        String
+  witness1Id         String
+  witness2Id         String
+  reason             String?
+  judgementNumber    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  partner1  Citizen @relation("DivorcePartner1", fields: [partner1Id], references: [id])
+  partner2  Citizen @relation("DivorcePartner2", fields: [partner2Id], references: [id])
+  officiant User    @relation("DivorceOfficiant", fields: [officiantId], references: [id])
+  witness1  Citizen @relation("DivorceWitness1", fields: [witness1Id], references: [id])
+  witness2  Citizen @relation("DivorceWitness2", fields: [witness2Id], references: [id])
+
+  @@map("divorce_records")
+}
+
+model MedicalExam {
+  id             String   @id @default(cuid())
+  date           DateTime @default(now())
+  examType       String
+  results        String
+  observations   String?
+  doctorId       String
+  patientId      String
+  consultationId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  doctor       User          @relation("DoctorExam", fields: [doctorId], references: [id])
+  patient      Citizen       @relation("PatientExam", fields: [patientId], references: [id])
+  consultation Consultation? @relation(fields: [consultationId], references: [id])
+
+  @@map("medical_exams")
 }
