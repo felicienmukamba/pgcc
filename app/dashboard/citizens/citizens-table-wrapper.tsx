@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { UserPlus, Search, Pencil, Eye, ChevronLeft, ChevronRight } from "lucide-react"
+import { UserPlus, Search, Pencil, Eye } from "lucide-react"
 import Link from "next/link"
 
 // Composants shadcn/ui
@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DataTable, ColumnDef } from "@/components/ui/data-table"
 
 // Définition d'un type Citoyen simplifié (à adapter si nécessaire)
 interface Citizen {
@@ -34,8 +34,6 @@ interface CitizensTableWrapperProps {
     currentStatus: string
 }
 
-// --- Helper Functions ---
-
 const getGenderLabel = (gender: string) => {
     switch (gender) {
         case "MALE": return "Homme"
@@ -55,55 +53,10 @@ const getMaritalStatusLabel = (status: string) => {
     }
 }
 
-// --- Pagination Component ---
-function Pagination({ totalPages, currentPage }: { totalPages: number, currentPage: number }) {
-    const router = useRouter()
-    const pathname = usePathname()
-    const searchParams = useSearchParams()
-
-    const createPageURL = (pageNumber: number | string) => {
-        // CORRECTION: Utiliser .toString() pour créer un objet URLSearchParams mutable
-        const params = new URLSearchParams(searchParams.toString()) 
-        params.set('page', pageNumber.toString())
-        return `${pathname}?${params.toString()}`
-    }
-
-    const goToPage = (page: number) => {
-        if (page > 0 && page <= totalPages) {
-            router.push(createPageURL(page))
-        }
-    }
-
-    return (
-        <div className="flex justify-end items-center space-x-2 p-4 border-t">
-            <span className="text-sm text-muted-foreground">
-                Page {currentPage} sur {totalPages}
-            </span>
-            <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage <= 1}
-            >
-                <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-            >
-                <ChevronRight className="h-4 w-4" />
-            </Button>
-        </div>
-    )
-}
-
-// --- Main Client Component ---
-export function CitizensTableWrapper({ 
-    initialCitizens, 
-    totalPages, 
-    currentPage, 
+export function CitizensTableWrapper({
+    initialCitizens,
+    totalPages,
+    currentPage,
     currentSearchTerm,
     currentGender,
     currentStatus
@@ -116,36 +69,19 @@ export function CitizensTableWrapper({
     const [statusFilter, setStatusFilter] = useState(currentStatus || 'ALL')
     const [isPending, startTransition] = useTransition()
 
-    // Fonction pour appliquer la recherche/filtre et mettre à jour l'URL
-    const applyFilters = (search: string, gender: string, status: string) => {
+    const applyFilters = (search: string, gender: string, status: string, page: number = 1) => {
         startTransition(() => {
-            // CORRECTION: Utiliser .toString() pour créer un objet URLSearchParams mutable
-            const params = new URLSearchParams(searchParams.toString()) 
-            
-            // 1. Terme de recherche
-            if (search) {
-                params.set('search', search)
-            } else {
-                params.delete('search')
-            }
+            const params = new URLSearchParams(searchParams.toString())
+            if (search) params.set('search', search)
+            else params.delete('search')
 
-            // 2. Filtre Genre
-            if (gender && gender !== 'ALL') {
-                params.set('gender', gender)
-            } else {
-                params.delete('gender')
-            }
+            if (gender && gender !== 'ALL') params.set('gender', gender)
+            else params.delete('gender')
 
-            // 3. Filtre Statut
-            if (status && status !== 'ALL') {
-                params.set('status', status)
-            } else {
-                params.delete('status')
-            }
+            if (status && status !== 'ALL') params.set('status', status)
+            else params.delete('status')
 
-            // Réinitialiser la page à 1 après chaque nouvelle recherche/filtre
-            params.set('page', '1')
-
+            params.set('page', page.toString())
             router.push(`${pathname}?${params.toString()}`)
         })
     }
@@ -153,41 +89,98 @@ export function CitizensTableWrapper({
     const handleSearchClick = () => {
         applyFilters(searchTerm, genderFilter, statusFilter)
     }
-    
-    // Permettre la recherche avec la touche Entrée
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            handleSearchClick()
-        }
+        if (e.key === 'Enter') handleSearchClick()
     }
 
-    // Mettre à jour l'état local lorsque les paramètres URL changent (navigation)
+    const handlePageChange = (page: number) => {
+        applyFilters(searchTerm, genderFilter, statusFilter, page)
+    }
+
     useEffect(() => {
         setSearchTerm(currentSearchTerm)
         setGenderFilter(currentGender || 'ALL')
         setStatusFilter(currentStatus || 'ALL')
     }, [currentSearchTerm, currentGender, currentStatus])
 
+    // Define columns for DataTable
+    const columns: ColumnDef<Citizen>[] = [
+        {
+            header: "Nom Complet",
+            cell: (citizen) => (
+                <div>
+                    <span className="font-medium text-slate-900">{citizen.firstName} {citizen.lastName}</span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                        Né(e) le {new Date(citizen.birthDate).toLocaleDateString("fr-FR")}
+                    </p>
+                </div>
+            )
+        },
+        {
+            header: "ID National",
+            accessorKey: "nationalityID",
+            cell: (citizen) => <span className="font-mono text-xs">{citizen.nationalityID}</span>
+        },
+        {
+            header: "Genre",
+            accessorKey: "gender",
+            cell: (citizen) => getGenderLabel(citizen.gender)
+        },
+        {
+            header: "Statut Marital",
+            accessorKey: "maritalStatus",
+            cell: (citizen) => <Badge variant="outline" className="text-[10px]">{getMaritalStatusLabel(citizen.maritalStatus)}</Badge>
+        },
+        {
+            header: "Nationalité",
+            accessorKey: "nationality",
+            cell: (citizen) => (
+                <Badge variant={citizen.nationality === "CONGOLAISE" || citizen.nationality === "CONGOLAISE_RDC" ? "default" : "secondary"} className="text-[10px]">
+                    {citizen.nationality === "CONGOLAISE" || citizen.nationality === "CONGOLAISE_RDC" ? "National" : "Étranger"}
+                </Badge>
+            )
+        },
+        {
+            header: "Actions",
+            className: "text-right",
+            cell: (citizen) => (
+                <div className="flex justify-end gap-2">
+                    <Link href={`/dashboard/citizens/${citizen.id}/edit`}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" title="Modifier">
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                    </Link>
+                    <Link href={`/dashboard/citizens/${citizen.id}`}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-600 hover:text-slate-900 hover:bg-slate-100" title="Voir détails">
+                            <Eye className="h-4 w-4" />
+                        </Button>
+                    </Link>
+                </div>
+            )
+        }
+    ]
+
     return (
-        <>
-            {/* Search and Filter Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Recherche et filtres</CardTitle>
-                    <CardDescription>Trouvez rapidement un citoyen par nom, ID, ou filtrez par état.</CardDescription>
+        <div className="space-y-6">
+            <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
+                    <CardTitle className="text-base font-bold uppercase tracking-tight text-slate-800">Recherche & Filtres</CardTitle>
+                    <CardDescription>Critères de sélection des dossiers citoyens</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                     <div className="flex flex-col md:flex-row gap-4">
-                        <div className="flex-1">
-                            <Input 
-                                placeholder="Rechercher par nom, prénom, ou ID national..." 
-                                className="w-full" 
+                        <div className="flex-1 relative">
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                            <Input
+                                placeholder="Rechercher par nom, prénom, ou ID national..."
+                                className="pl-9"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onKeyDown={handleKeyDown}
                             />
                         </div>
-                        
+
                         <Select value={genderFilter} onValueChange={(value) => setGenderFilter(value)}>
                             <SelectTrigger className="w-full md:w-[150px]">
                                 <SelectValue placeholder="Genre" />
@@ -213,102 +206,24 @@ export function CitizensTableWrapper({
                             </SelectContent>
                         </Select>
 
-                        <Button 
-                            onClick={handleSearchClick}
-                            disabled={isPending}
-                        >
-                            <Search className="mr-2 h-4 w-4" />
-                            {isPending ? 'Recherche...' : 'Rechercher'}
+                        <Button onClick={handleSearchClick} disabled={isPending} className="md:w-auto">
+                            {isPending ? '...' : <Search className="h-4 w-4" />}
                         </Button>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Data Table Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        Liste des citoyens 
-                        {currentSearchTerm && <span> (Résultats pour "{currentSearchTerm}")</span>}
-                    </CardTitle>
-                    <CardDescription>
-                        {isPending ? 'Chargement des données...' : 'Aperçu des citoyens enregistrés.'}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                    {initialCitizens.length > 0 ? (
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Nom Complet</TableHead>
-                                        <TableHead>ID National</TableHead>
-                                        <TableHead>Genre</TableHead>
-                                        <TableHead>Statut Marital</TableHead>
-                                        <TableHead>Nationalité</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {initialCitizens.map((citizen) => (
-                                        <TableRow key={citizen.id} className={isPending ? 'opacity-50' : ''}>
-                                            <TableCell className="font-medium">
-                                                {citizen.firstName} {citizen.lastName}
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                    Né(e) le {new Date(citizen.birthDate).toLocaleDateString("fr-FR")}
-                                                </p>
-                                            </TableCell>
-                                            <TableCell>{citizen.nationalityID}</TableCell>
-                                            <TableCell>{getGenderLabel(citizen.gender)}</TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline">{getMaritalStatusLabel(citizen.maritalStatus)}</Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={citizen.nationality === "CONGOLAISE_RDC" ? "default" : "secondary"}>
-                                                    {citizen.nationality === "CONGOLAISE_RDC" ? "National" : "Étranger"}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Link href={`/dashboard/citizens/${citizen.id}/edit`}>
-                                                        <Button variant="ghost" size="sm" title="Modifier">
-                                                            <Pencil className="h-4 w-4" />
-                                                        </Button>
-                                                    </Link>
-                                                    <Link href={`/dashboard/citizens/${citizen.id}`}>
-                                                        <Button variant="ghost" size="sm" title="Voir détails">
-                                                            <Eye className="h-4 w-4" />
-                                                        </Button>
-                                                    </Link>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    ) : (
-                        <div className="p-12 text-center">
-                             <h3 className="text-lg font-semibold mb-2">
-                                {currentSearchTerm || currentGender !== 'ALL' || currentStatus !== 'ALL' 
-                                    ? "Aucun citoyen trouvé avec les critères spécifiés." 
-                                    : "Aucun citoyen enregistré"}
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
-                                {currentSearchTerm ? "Veuillez essayer une recherche différente." : "Commencez par enregistrer un citoyen."}
-                            </p>
-                            {!currentSearchTerm && !currentGender && !currentStatus && (
-                                <Link href="/dashboard/citizens/new">
-                                    <Button><UserPlus className="mr-2 h-4 w-4" /> Nouveau citoyen</Button>
-                                </Link>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Pagination */}
-                    {totalPages > 1 && <Pagination totalPages={totalPages} currentPage={currentPage} />}
-                </CardContent>
-            </Card>
-        </>
+            <DataTable
+                columns={columns}
+                data={initialCitizens}
+                isLoading={isPending}
+                pagination={{
+                    currentPage,
+                    totalPages,
+                    onPageChange: handlePageChange
+                }}
+                emptyMessage="Aucun citoyen trouvé."
+            />
+        </div>
     )
 }

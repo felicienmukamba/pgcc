@@ -347,6 +347,7 @@ model User {
   convictionsAsProsecutor    Conviction[]     @relation("Prosecutor")
   divorceRecordsAsOfficiant  DivorceRecord[]  @relation("DivorceOfficiant")
   medicalExamsAsDoctor       MedicalExam[]    @relation("DoctorExam")
+  auditLogs                  AuditLog[]
 
   @@map("users")
 }
@@ -440,7 +441,6 @@ model Image {
 
   @@map("images")
 }
-// Corrected schema.prisma for BirthRecord
 
 model BirthRecord {
   id                 String    @id @default(cuid())
@@ -693,4 +693,58 @@ model MedicalExam {
   consultation Consultation? @relation(fields: [consultationId], references: [id])
 
   @@map("medical_exams")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, VIEW
+  entity    String   // Table name or Module name
+  entityId  String?  // ID of the affected record
+  details   String?  // Description or JSON string of changes
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  // Tamper-Evident Chain
+  prevHash  String?
+  hash      String?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+// Secure Identity Model
+model CitizenIdentity {
+  id            String   @id @default(uuid()) // UUIDv7 manually implemented if needed, or default uuid
+  nationalId    String   @unique
+  passwordHash  String
+  mfaSecret     String?
+  mfaEnabled    Boolean  @default(false)
+  
+  // Relations
+  profile       CitizenProfile?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("citizen_identities")
+}
+
+// Encrypted Profile Data (PII)
+model CitizenProfile {
+  id             String          @id @default(cuid())
+  identityId     String          @unique
+  identity       CitizenIdentity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  
+  encryptedData  String          @db.Text // AES-256-GCM encrypted JSON blob
+  
+  // Searchable fields (hashed/blind index)
+  emailHash      String?         @unique
+  phoneNumberHash String?
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@map("citizen_profiles")
 }
