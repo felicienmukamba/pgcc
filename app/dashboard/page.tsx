@@ -63,14 +63,14 @@ async function getRecentActivity() {
             prisma.citizen.findMany({ take: 3, orderBy: { createdAt: 'desc' } }),
             prisma.birthRecord.findMany({ take: 2, orderBy: { createdAt: 'desc' }, include: { citizen: true } }),
             prisma.consultation.findMany({ take: 2, orderBy: { date: 'desc' }, include: { patient: true } }),
-            prisma.complaint.findMany({ take: 2, orderBy: { createdAt: 'desc' }, include: { citizen: true } }),
+            prisma.complaint.findMany({ take: 2, orderBy: { createdAt: 'desc' }, include: { plaintiff: true } }),
         ])
 
         const activities = [
             ...citizens.map((c: any) => ({ id: c.id, type: 'CITOYEN', title: `${c.firstName} ${c.lastName}`, date: c.createdAt, icon: Users, color: 'text-blue-500' })),
             ...births.map((b: any) => ({ id: b.id, type: 'NAISSANCE', title: `Nouveau-né: ${b.childName}`, date: b.createdAt, icon: Baby, color: 'text-green-500' })),
             ...consultations.map((c: any) => ({ id: c.id, type: 'CONSULTATION', title: `Patient: ${c.patient.firstName}`, date: c.date, icon: Heart, color: 'text-red-500' })),
-            ...complaints.map((c: any) => ({ id: c.id, type: 'PLAINTE', title: `Plainte: ${c.citizen.lastName}`, date: c.createdAt, icon: Scale, color: 'text-amber-500' })),
+            ...complaints.map((c: any) => ({ id: c.id, type: 'PLAINTE', title: `Plainte: ${c.plaintiff.lastName}`, date: c.createdAt, icon: Scale, color: 'text-amber-500' })),
         ]
 
         return activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 6)

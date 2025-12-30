@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ShieldCheck, AlertCircle, KeyRound, ArrowLeft } from "lucide-react"
 
+export const dynamic = 'force-dynamic';
+
 export default function LoginPage() {
     const router = useRouter()
     const [formData, setFormData] = useState({

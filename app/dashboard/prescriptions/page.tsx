@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Search, Filter, Calendar, User, Pill } from "lucide-react"
 
+export const dynamic = 'force-dynamic';
+
 async function getPrescriptions() {
   return await prisma.prescription.findMany({
     include: {

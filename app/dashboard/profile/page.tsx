@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { ProfilePageClientWrapper } from "@/components/profile/ProfilePageClientWrapper"
 // 👈 Import du Client Wrapper
+export const dynamic = 'force-dynamic';
 
 async function getUserProfile() {
   const session = await getServerSession(authOptions)

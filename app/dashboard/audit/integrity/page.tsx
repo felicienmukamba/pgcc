@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ShieldAlert, ShieldCheck, AlertTriangle, RefreshCw } from "lucide-react"
 
+
+export const dynamic = 'force-dynamic';
 interface IntegrityResult {
     totalLogs: number
     compromisedCount: number
