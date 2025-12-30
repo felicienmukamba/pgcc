@@ -1,120 +1,115 @@
-// import { type NextRequest, NextResponse } from "next/server";
-// import { getServerSession } from "next-auth";
-// import { authOptions } from "@/lib/auth";
-// import { prisma } from "@/lib/prisma";
-// import * as faceapi from "face-api.js";
-// import { Canvas, Image, ImageData, loadImage } from "canvas";
-// import path from "path";
+import { type NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import * as faceapi from "face-api.js";
+import sharp from "sharp";
+import path from "path";
 
-// faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+// No monkeyPatch needed if we pass tensors directly from sharp
 
-// //  ICI ON FAIT UN LOAD DE MODEL FACE API
+let modelsLoaded = false;
+async function loadModels() {
+    if (!modelsLoaded) {
+        const modelPath = path.join(process.cwd(), "public", "models");
+        await Promise.all([
+            faceapi.nets.ssdMobilenetv1.loadFromDisk(modelPath),
+            faceapi.nets.faceRecognitionNet.loadFromDisk(modelPath),
+            faceapi.nets.faceLandmark68Net.loadFromDisk(modelPath),
+        ]);
+        modelsLoaded = true;
+        console.log("✅ Modèles Face-API chargés.");
+    }
+}
 
-// let modelsLoaded = false;
-// async function loadModels() {
-//   if (!modelsLoaded) {
-//     const modelPath = path.join(process.cwd(), "public", "models");
-//     await Promise.all([
-//       faceapi.nets.ssdMobilenetv1.loadFromDisk(modelPath),
-//       faceapi.nets.faceRecognitionNet.loadFromDisk(modelPath),
-//       faceapi.nets.faceLandmark68Net.loadFromDisk(modelPath),
-//     ]);
-//     modelsLoaded = true;
-//     console.log("✅ Modèles Face-API chargés.");
-//   }
-// }
+export async function POST(request: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-// //  ICI ON RECUPERE L'IMAGE CAPTURE OU IMPORTER
+        const hasPermission = session.user.roles.some((r) =>
+            ["ADMIN", "OFFICIER_ETAT_CIVIL", "OPJ", "MEDECIN"].includes(r)
+        );
+        if (!hasPermission) return NextResponse.json({ error: "Permissions insuffisantes" }, { status: 403 });
 
-// export async function POST(request: NextRequest) {
-//   try {
-//     const session = await getServerSession(authOptions);
-//     if (!session) {
-//       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-//     }
+        const body = await request.json();
+        const { image } = body;
 
-//     const hasPermission = session.user.roles.some((r) =>
-//       ["ADMIN", "OFFICIER_ETAT_CIVIL", "OPJ", "MEDECIN"].includes(r)
-//     );
-//     if (!hasPermission) {
-//       return NextResponse.json({ error: "Permissions insuffisantes" }, { status: 403 });
-//     }
+        if (!image) return NextResponse.json({ error: "Image Base64 requise" }, { status: 400 });
 
-//     // Le client envoie un corps JSON avec l'image Base64
-//     const body = await request.json();
-//     const { image } = body;
+        const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
 
-//     if (!image) {
-//       return NextResponse.json({ error: "Image Base64 requise" }, { status: 400 });
-//     }
+        // SHARP -> TENSOR
+        const { data, info } = await sharp(buffer)
+            .raw()
+            .toBuffer({ resolveWithObject: true });
 
-//     //  ICI ON FORMART L'IMAGE
+        const tensor = faceapi.tf.tensor3d(
+            new Uint8Array(data),
+            [info.height, info.width, info.channels]
+        );
 
-//     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
-//     const buffer = Buffer.from(base64Data, "base64");
-//     const img = await loadImage(buffer);
+        await loadModels();
 
-//     await loadModels();
+        const detection = await faceapi
+            .detectSingleFace(tensor as any)
+            .withFaceLandmarks()
+            .withFaceDescriptor();
 
-//     const detection = await faceapi
-//       .detectSingleFace(img)
-//       .withFaceLandmarks()
-//       .withFaceDescriptor();
+        tensor.dispose(); // Important cleanup
 
-//     if (!detection) {
-//       return NextResponse.json({ matches: [], message: "Aucun visage détecté" }, { status: 200 });
-//     }
+        if (!detection) {
+            return NextResponse.json({ matches: [], message: "Aucun visage détecté" }, { status: 200 });
+        }
 
-//     // Récupérer tous les descripteurs de la base de données
-//     const citizens = await prisma.faceDescriptor.findMany({
-//       select: {
-//         citizenId: true,
-//         descriptor: true,
-//         citizen: {
-//           select: {
-//             id: true,
-//             firstName: true,
-//             lastName: true,
-//             nationalityID: true,
-//             birthDate: true,
-//           },
-//         },
-//       },
-//     });
+        // Database lookup (re-use existing logic)
+        const citizens = await prisma.faceDescriptor.findMany({
+            select: {
+                citizenId: true,
+                descriptor: true,
+                citizen: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        nationalityID: true,
+                        birthDate: true,
+                    },
+                },
+            },
+        });
 
-//     if (!citizens.length) {
-//       return NextResponse.json({ matches: [], message: "Aucun citoyen enregistré" }, { status: 200 });
-//     }
+        if (!citizens.length) {
+            return NextResponse.json({ matches: [], message: "Aucun citoyen enregistré" }, { status: 200 });
+        }
 
-//     const labeledDescriptors = citizens.map(
-//       (c) =>
-//         new faceapi.LabeledFaceDescriptors(c.citizenId, [
-//           Float32Array.from(c.descriptor as number[]),
-//         ])
-//     );
-    
-//     // Le seuil de 0.6 est un bon point de départ, vous pouvez l'ajuster
-//     const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+        const labeledDescriptors = citizens.map(
+            (c) =>
+                new faceapi.LabeledFaceDescriptors(c.citizenId, [
+                    Float32Array.from(c.descriptor as number[]),
+                ])
+        );
 
+        // Threshold 0.6
+        const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+        const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
 
-//     //  ICI ON RECUPERE LA PERSONNES IDENTIFIE
+        const matches =
+            bestMatch.label !== "unknown"
+                ? [
+                    {
+                        citizenId: bestMatch.label,
+                        confidence: 1 - bestMatch.distance,
+                        citizen: citizens.find((c) => c.citizenId === bestMatch.label)?.citizen,
+                    },
+                ]
+                : [];
 
-//     const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+        return NextResponse.json({ matches });
 
-//     const matches =
-//       bestMatch.label !== "unknown"
-//         ? [
-//             {
-//               citizenId: bestMatch.label,
-//               confidence: 1 - bestMatch.distance,
-//               citizen: citizens.find((c) => c.citizenId === bestMatch.label)?.citizen,
-//             },
-//           ]
-//         : [];
-
-//     return NextResponse.json({ matches });
-//   } catch (e) {
-//     console.error("❌ Erreur reconnaissance faciale:", e);
-//     return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
-//   }
-// }
+    } catch (e) {
+        console.error("❌ Erreur reconnaissance faciale:", e);
+        return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+    }
+}
