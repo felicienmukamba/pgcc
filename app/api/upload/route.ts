@@ -2,28 +2,9 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { FileUploadService } from "@/lib/upload";
-import * as faceapi from "face-api.js";
-import { Canvas, Image, ImageData, loadImage } from "canvas";
 import path from "path";
 import fs from "fs/promises";
-
-// Cette ligne adapte face-api.js pour qu'il fonctionne dans Node.js
-faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
-
-let modelsLoaded = false;
-async function loadModels() {
-  if (!modelsLoaded) {
-    const modelPath = path.join(process.cwd(), "public", "models");
-    await Promise.all([
-      faceapi.nets.ssdMobilenetv1.loadFromDisk(modelPath),
-      faceapi.nets.faceRecognitionNet.loadFromDisk(modelPath),
-      faceapi.nets.faceLandmark68Net.loadFromDisk(modelPath),
-    ]);
-    modelsLoaded = true;
-    console.log("✅ Modèles Face-API chargés.");
-  }
-}
+import sharp from "sharp";
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,19 +42,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Citoyen non trouvé" }, { status: 404 });
     }
 
-    await loadModels();
     const uploadedImages = [];
+    const uploadDir = path.join(process.cwd(), "public/uploads");
+
+    // Ensure upload directory exists
+    try {
+      await fs.access(uploadDir);
+    } catch {
+      await fs.mkdir(uploadDir, { recursive: true });
+    }
 
     for (const file of files) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
-      // Étape 1 : Sauvegarder le fichier sur le disque
       const filename = `${citizenId}_${Date.now()}_${file.name}`;
-      const filepath = path.join(process.cwd(), "public/uploads", filename);
-      await fs.writeFile(filepath, buffer);
+      const filepath = path.join(uploadDir, filename);
 
-      // Étape 2 : Enregistrer le chemin de l'image dans la base de données
+      // Use sharp to optimize/ensure it's a valid image and save it
+      // Converting to buffer first or processing directly
+      await sharp(buffer)
+        .toFile(filepath);
+
+      // Enregistrer le chemin de l'image dans la base de données
       const imageRecord = await prisma.image.create({
         data: {
           path: `/uploads/${filename}`,
@@ -82,33 +73,14 @@ export async function POST(request: NextRequest) {
       });
       uploadedImages.push(imageRecord);
 
-      // Étape 3 (NOUVELLE) : Détecter le visage et extraire le descripteur
-      const img = await loadImage(filepath);
-      const detection = await faceapi
-        .detectSingleFace(img)
-        .withFaceLandmarks()
-        .withFaceDescriptor();
-
-      if (detection) {
-        // Convertir le descripteur en un tableau standard pour le stockage
-        const descriptorArray = Array.from(detection.descriptor);
-        // Étape 4 (NOUVELLE) : Enregistrer le descripteur dans la table FaceDescriptor
-        await prisma.faceDescriptor.create({
-          data: {
-            citizenId: citizenId,
-            descriptor: descriptorArray,
-          },
-        });
-        console.log(`✅ Descripteur enregistré pour le citoyen ${citizenId}`);
-      } else {
-        console.warn(`⚠️ Pas de visage détecté dans ${filename}. L'enregistrement du descripteur est ignoré.`);
-      }
+      // NOTE: Face detection (face-api.js) removed due to 'canvas' incompatibility with Vercel serverless.
+      // If face detection is required, consider a cloud API or a Python microservice.
     }
 
     return NextResponse.json({
       success: true,
       images: uploadedImages,
-      message: `${uploadedImages.length} image(s) téléchargée(s) et analysée(s) avec succès`,
+      message: `${uploadedImages.length} image(s) téléchargée(s) avec succès`,
     });
   } catch (error) {
     console.error("Erreur de téléchargement des fichiers:", error);

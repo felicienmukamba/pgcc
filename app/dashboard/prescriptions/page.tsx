@@ -98,10 +98,10 @@ export default async function PrescriptionsPage() {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold">
-                        {prescription.consultation?.patient.firstName} {prescription.consultation?.patient.lastName}
+                        {prescription.consultation?.patient?.firstName} {prescription.consultation?.patient?.lastName}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        ID: {prescription.consultation?.patient.nationalityID}
+                        ID: {prescription.consultation?.patient?.nationalityID}
                       </p>
                     </div>
                     <Badge className={getStatusColor(prescription.status)}>{getStatusLabel(prescription.status)}</Badge>
@@ -114,7 +114,7 @@ export default async function PrescriptionsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <span>Dr. {prescription.consultation?.doctor.username}</span>
+                      <span>Dr. {prescription.consultation?.doctor?.username}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">Durée:</span>

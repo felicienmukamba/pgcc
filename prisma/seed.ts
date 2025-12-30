@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import * as argon2 from "argon2";
 import {
   PrismaClient,
   Role,
@@ -22,17 +22,31 @@ async function main() {
   console.log("🌱 Début du processus de seed...");
 
   // --- 0. Nettoyage des tables dans le bon ordre pour éviter les erreurs de clé étrangère ---
+  // Tables dépendantes (enfants) d'abord
+  await prisma.auditLog.deleteMany();
+  await prisma.citizenProfile.deleteMany();
+  await prisma.citizenIdentity.deleteMany();
+  await prisma.webAuthnCredential.deleteMany();
+  await prisma.fingerprintEmbedding.deleteMany();
+  await prisma.faceDescriptor.deleteMany();
+
   await prisma.prescription.deleteMany();
   await prisma.medication.deleteMany();
+  await prisma.medicalExam.deleteMany(); // Added
   await prisma.consultation.deleteMany();
+
   await prisma.complaint.deleteMany();
   await prisma.conviction.deleteMany();
+
   await prisma.birthRecord.deleteMany();
+  await prisma.divorceRecord.deleteMany(); // Added
   await prisma.marriageRecord.deleteMany();
   await prisma.deathRecord.deleteMany();
-  await prisma.faceDescriptor.deleteMany();
+
   await prisma.image.deleteMany();
   await prisma.citizen.deleteMany();
+
+  await prisma.session.deleteMany(); // Added safety
   await prisma.account.deleteMany();
   await prisma.user.deleteMany();
 
@@ -41,7 +55,7 @@ async function main() {
   // === 1. USERS & CITOYENS ===
   console.log("👥 Création des utilisateurs et des citoyens...");
 
-  const hashedPassword = await bcrypt.hash("password", 10);
+  const hashedPassword = await argon2.hash("password");
 
   // --- Création des utilisateurs pour les rôles de l'application ---
   const adminUser = await prisma.user.create({ data: { email: "admin@gov.local", username: "admin", roles: [Role.ADMIN] } });
@@ -77,7 +91,7 @@ async function main() {
 
   const victimeUser = await prisma.user.create({ data: { email: "paule.mavungu@gov.local", username: "paulem", roles: [Role.CITOYEN] } });
   await prisma.account.create({ data: { userId: victimeUser.id, type: "credentials", provider: "credentials", providerAccountId: victimeUser.email, access_token: hashedPassword } });
-  
+
   const agresseurUser = await prisma.user.create({ data: { email: "patrick.lwanga@gov.local", username: "patricklw", roles: [Role.CITOYEN] } });
   await prisma.account.create({ data: { userId: agresseurUser.id, type: "credentials", provider: "credentials", providerAccountId: agresseurUser.email, access_token: hashedPassword } });
 
@@ -189,7 +203,7 @@ async function main() {
       voterStatus: "Non enregistré",
     },
   });
-  
+
   const decapitaine = await prisma.citizen.create({
     data: {
       userId: decapitaineUser.id,
@@ -219,7 +233,7 @@ async function main() {
       maritalStatus: MaritalStatus.SINGLE,
     },
   });
-  
+
   const agresseur = await prisma.citizen.create({
     data: {
       userId: agresseurUser.id,
@@ -235,7 +249,42 @@ async function main() {
     },
   });
 
+
   console.log("✅ Utilisateurs et citoyens créés.");
+
+  // --- NOUVEAU: Créer les identités sécurisées (CitizenIdentity) pour le Login Citoyen ---
+  console.log("🔐 Création des identités sécurisées pour les citoyens...");
+  const usersToSecure = [pere, mere, enfant1, enfant2, decapitaine, victime, agresseur];
+
+  for (const citizen of usersToSecure) {
+    if (citizen.nationalityID) {
+
+      // Créer l'identité (Login credentials)
+      const identity = await prisma.citizenIdentity.create({
+        data: {
+          nationalId: citizen.nationalityID,
+          // Mot de passe par défaut pour tous les seeds: "password"
+          // Hash pré-généré pour "password" (bcryptjs)
+          passwordHash: hashedPassword,
+          mfaEnabled: false
+        }
+      });
+
+      // Lier au profil crypté (simulé ici en clair pour le seed, mais normalement crypté)
+      await prisma.citizenProfile.create({
+        data: {
+          identityId: identity.id,
+          encryptedData: JSON.stringify({
+            email: `citizen.${citizen.firstName.toLowerCase()}.${citizen.lastName.toLowerCase()}@gov.local`,
+            phone: citizen.phoneNumber
+          }),
+          emailHash: `hash_email_${citizen.firstName.toLowerCase()}_${citizen.lastName.toLowerCase()}`,
+          phoneNumberHash: `hash_phone_${citizen.firstName.toLowerCase()}_${citizen.lastName.toLowerCase()}`
+        }
+      });
+    }
+  }
+  console.log("✅ Identités sécurisées créées (Mot de passe: 'password').");
 
   // --- Relations Parentales
   await prisma.citizen.update({
@@ -255,7 +304,7 @@ async function main() {
       registrationNumber: "BIRTH-KIN-2005-12345",
       citizenId: enfant1.id,
       officiantId: officierEtatCivilUser.id,
-      declarerId: pere.id, 
+      declarerId: pere.id,
       date: new Date("2005-11-27"),
       place: "Hôpital Général de Référence de Kinshasa",
       childName: enfant1.firstName + " " + enfant1.lastName,
@@ -268,13 +317,13 @@ async function main() {
       observations: "Déclaration faite par le père, en présence de la mère.",
     },
   });
-  
+
   const acteNaissance2 = await prisma.birthRecord.create({
     data: {
       registrationNumber: "BIRTH-KIN-2010-67890",
       citizenId: enfant2.id,
       officiantId: officierEtatCivilUser.id,
-      declarerId: mere.id, 
+      declarerId: mere.id,
       date: new Date("2010-02-16"),
       place: "Hôpital de la Gombe",
       childName: enfant2.firstName + " " + enfant2.lastName,
@@ -292,7 +341,7 @@ async function main() {
 
 
   console.log("💍 Création des actes de mariage...");
-  
+
   const mariage = await prisma.marriageRecord.create({
     data: {
       partner1Id: pere.id,
@@ -307,7 +356,44 @@ async function main() {
     },
   });
   console.log("✅ Actes de mariage créés.");
-  
+
+  // === ACTES DE DIVORCE ===
+  const mariageVictimeAgresseur = await prisma.marriageRecord.create({
+    data: {
+      partner1Id: agresseur.id,
+      partner2Id: victime.id,
+      marriagePlace: "Mairie de Matete",
+      marriageDate: new Date("2020-01-15"),
+      officiantId: officierEtatCivilUser.id,
+      witness1Id: pere.id,
+      witness2Id: mere.id,
+      marriageType: MarriageType.CIVIL,
+      contractType: ContractType.SEPARATION_OF_PROPERTY,
+    }
+  });
+
+  const divorce = await prisma.divorceRecord.create({
+    data: {
+      registrationNumber: "DIV-KIN-2023-001",
+      partner1Id: agresseur.id,
+      partner2Id: victime.id,
+      marriageRecordId: mariageVictimeAgresseur.id,
+      divorceDate: new Date("2023-06-20"),
+      divorcePlace: "Tribunal de Paix de Matete",
+      officiantId: officierEtatCivilUser.id,
+      witness1Id: pere.id,
+      witness2Id: mere.id,
+      reason: "Incompatibilité d'humeur et violences conjugales",
+      judgementNumber: "JUG-2023-555"
+    }
+  });
+
+  // Mettre à jour les status
+  await prisma.citizen.update({ where: { id: agresseur.id }, data: { maritalStatus: MaritalStatus.DIVORCED } });
+  await prisma.citizen.update({ where: { id: victime.id }, data: { maritalStatus: MaritalStatus.DIVORCED } });
+
+  console.log("✅ Actes de divorce créés.");
+
 
   console.log("⚰️ Création des actes de décès...");
 
@@ -316,7 +402,7 @@ async function main() {
       citizenId: decapitaine.id,
       deathDate: new Date("2024-05-10"),
       deathPlace: "Hôpital de la Gombe",
-      declarerId: mere.id, 
+      declarerId: mere.id,
       officiantId: officierEtatCivilUser.id,
       informantRelationship: "Fils", // Assuming 'mere' is related to 'decapitaine'
       funeralPlace: "Cimetière de Kinshasa",
@@ -337,6 +423,19 @@ async function main() {
       doctorId: medecinUser.id,
       patientId: enfant1.id,
     },
+  });
+
+  // Création examen médical
+  await prisma.medicalExam.create({
+    data: {
+      date: new Date("2025-01-10T10:15:00Z"),
+      examType: "Prise de sang",
+      results: "ECBU Normal, CRP élevée (45 mg/L)",
+      observations: "Infection bactérienne confirmée.",
+      doctorId: medecinUser.id,
+      patientId: enfant1.id,
+      consultationId: consultation.id
+    }
   });
 
   const medicationsData = [
@@ -377,21 +476,6 @@ async function main() {
     { tradeName: "Novolog", genericName: "Insuline Aspart", dosage: "100 U/ml", unit: "cartouche", adminRoute: "Sous-cutanée", manufacturer: "Novo Nordisk", description: "Insuline à action rapide." },
     { tradeName: "Ventoline", genericName: "Salbutamol", dosage: "100 mcg", unit: "inhalateur", adminRoute: "Inhalation", manufacturer: "GlaxoSmithKline", description: "Bronchodilatateur pour l'asthme." },
     { tradeName: "Seretide", genericName: "Salmétérol/Fluticasone", dosage: "50/250 mcg", unit: "diskus", adminRoute: "Inhalation", manufacturer: "GlaxoSmithKline", description: "Traitement de fond de l'asthme et de la BPCO." },
-    { tradeName: "Singulair", genericName: "Montélukast", dosage: "10 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Merck", description: "Antagoniste des leucotriènes pour l'asthme." },
-    { tradeName: "Zyrtec", genericName: "Cétirizine", dosage: "10 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "UCB", description: "Antihistaminique pour les allergies." },
-    { tradeName: "Loratadine", genericName: "Loratadine", dosage: "10 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Divers", description: "Antihistaminique pour la rhinite allergique." },
-    { tradeName: "Claritin", genericName: "Loratadine", dosage: "10 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Bayer", description: "Médicament pour les symptômes d'allergie." },
-    { tradeName: "Zopiclone", genericName: "Zopiclone", dosage: "7.5 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Divers", description: "Hypnotique pour le traitement de l'insomnie." },
-    { tradeName: "Stilnox", genericName: "Zolpidem", dosage: "10 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Sanofi-Aventis", description: "Hypnotique de courte durée d'action." },
-    { tradeName: "Lexomil", genericName: "Bromazépam", dosage: "6 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Roche", description: "Anxiolytique de la famille des benzodiazépines." },
-    { tradeName: "Valium", genericName: "Diazépam", dosage: "10 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Roche", description: "Anxiolytique et myorelaxant." },
-    { tradeName: "Xanax", genericName: "Alprazolam", dosage: "0.5 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Pfizer", description: "Anxiolytique pour les troubles anxieux et les attaques de panique." },
-    { tradeName: "Prozac", genericName: "Fluoxétine", dosage: "20 mg", unit: "gélule", adminRoute: "Oral", manufacturer: "Eli Lilly", description: "Antidépresseur de type ISRS." },
-    { tradeName: "Zoloft", genericName: "Sertraline", dosage: "50 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Pfizer", description: "Antidépresseur de type ISRS." },
-    { tradeName: "Tegretol", genericName: "Carbamazépine", dosage: "200 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Novartis", description: "Anticonvulsivant et stabilisateur de l'humeur." },
-    { tradeName: "Depakine", genericName: "Valproate de sodium", dosage: "500 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Sanofi", description: "Anticonvulsivant et stabilisateur de l'humeur." },
-    { tradeName: "Risperdal", genericName: "Rispéridone", dosage: "2 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Janssen", description: "Antipsychotique atypique." },
-    { tradeName: "Seroquel", genericName: "Quétiapine", dosage: "50 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "AstraZeneca", description: "Antipsychotique pour le traitement de la schizophrénie et des troubles bipolaires." },
     { tradeName: "Singulair", genericName: "Montélukast", dosage: "10 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Merck", description: "Antagoniste des leucotriènes pour l'asthme." },
     { tradeName: "Zyrtec", genericName: "Cétirizine", dosage: "10 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "UCB", description: "Antihistaminique pour les allergies." },
     { tradeName: "Loratadine", genericName: "Loratadine", dosage: "10 mg", unit: "comprimé", adminRoute: "Oral", manufacturer: "Divers", description: "Antihistaminique pour la rhinite allergique." },
@@ -526,7 +610,7 @@ async function main() {
       policeOfficerId: opjUser.id,
     },
   });
-  
+
   const conviction = await prisma.conviction.create({
     data: {
       citizenId: agresseur.id,

@@ -709,7 +709,7 @@ model AuditLog {
   prevHash  String?
   hash      String?
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
 }

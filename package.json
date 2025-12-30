@@ -39,11 +39,9 @@
     "@vercel/analytics": "1.5.0",
     "argon2": "^0.44.0",
     "bcryptjs": "^3.0.2",
-    "canvas": "^3.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "encoding": "^0.1.13",
-    "face-api.js": "^0.22.2",
     "fs": "0.0.1-security",
     "geist": "1.5.1",
     "lucide-react": "^0.294.0",
@@ -55,6 +53,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.2.1",
+    "sharp": "^0.34.5",
     "tailwind-merge": "^2.6.0",
     "tw-animate-css": "^1.3.8",
     "uuid": "^13.0.0"
@@ -71,5 +70,8 @@
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.9.2"
+  },
+  "prisma": {
+    "seed": "npx ts-node --project tsconfig.seed.json prisma/seed.ts"
   }
 }
