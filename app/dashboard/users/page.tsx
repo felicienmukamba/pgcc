@@ -2,13 +2,15 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, Search, UserPlus, Shield, Loader2 } from "lucide-react"
+import { Users, Search, UserPlus, Shield, Loader2, Filter, Eye, Pencil } from "lucide-react"
 import { RoleGuard } from "@/components/auth/role-guard"
 import Link from "next/link"
+import { DataTable } from "@/components/ui/data-table"
+import { ColumnDef } from "@tanstack/react-table"
 
 type UserData = {
   id: string;
@@ -22,43 +24,27 @@ type UserData = {
 
 const getRoleLabel = (role: string) => {
   switch (role) {
-    case "ADMIN":
-      return "Administrateur"
-    case "OFFICIER_ETAT_CIVIL":
-      return "Officier d'État Civil"
-    case "MEDECIN":
-      return "Médecin"
-    case "OPJ":
-      return "Officier de Police Judiciaire"
-    case "PROCUREUR":
-      return "Procureur"
-    case "CITOYEN":
-      return "Citoyen"
-    case "VIEWER":
-      return "Observateur"
-    default:
-      return role
+    case "ADMIN": return "Administrateur"
+    case "OFFICIER_ETAT_CIVIL": return "Officier d'État Civil"
+    case "MEDECIN": return "Médecin"
+    case "OPJ": return "Officier de Police Judiciaire"
+    case "PROCUREUR": return "Procureur"
+    case "CITOYEN": return "Citoyen"
+    case "VIEWER": return "Observateur"
+    default: return role
   }
 }
 
 const getRoleColor = (role: string) => {
   switch (role) {
-    case "ADMIN":
-      return "destructive"
-    case "OFFICIER_ETAT_CIVIL":
-      return "default"
-    case "MEDECIN":
-      return "secondary"
-    case "OPJ":
-      return "outline"
-    case "PROCUREUR":
-      return "primary"
-    case "CITOYEN":
-      return "default"
-    case "VIEWER":
-      return "secondary"
-    default:
-      return "outline"
+    case "ADMIN": return "destructive"
+    case "OFFICIER_ETAT_CIVIL": return "default"
+    case "MEDECIN": return "secondary"
+    case "OPJ": return "outline"
+    case "PROCUREUR": return "default" // Changed to default for better visibility
+    case "CITOYEN": return "outline"
+    case "VIEWER": return "secondary"
+    default: return "outline"
   }
 }
 
@@ -88,13 +74,16 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedRole, setSelectedRole] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
-  const [pendingSearch, setPendingSearch] = useState("") // Pour le debounce
+  const [pendingSearch, setPendingSearch] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
 
-  // Debounce pour la recherche
+  // Debounce
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchTerm(pendingSearch)
-    }, 500) // 500ms
+      setCurrentPage(1) // Reset page on search
+    }, 500)
 
     return () => {
       clearTimeout(handler)
@@ -130,17 +119,84 @@ export default function UsersPage() {
     { value: "VIEWER", label: "Observateur" },
     { value: "CITOYEN", label: "Citoyen" },
   ];
-  
+
+  // Pagination logic (client-side for now as API returns filtered list)
+  const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE)
+  const paginatedUsers = users.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  )
+
+  const columns: ColumnDef<UserData>[] = [
+    {
+      header: "Utilisateur",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
+            <Shield className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-semibold text-slate-800 dark:text-slate-200">{row.original.username}</span>
+            <span className="text-xs text-muted-foreground">{row.original.email}</span>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: "Rôle",
+      accessorKey: "roles",
+      cell: ({ row }) => (
+        <Badge variant={getRoleColor(row.original.roles[0] || 'VIEWER') as any} className="whitespace-nowrap">
+          {getRoleLabel(row.original.roles[0] || 'VIEWER')}
+        </Badge>
+      )
+    },
+    {
+      header: "Statut",
+      accessorKey: "enabled",
+      cell: ({ row }) => (
+        <Badge variant={row.original.enabled ? "outline" : "destructive"} className={row.original.enabled ? "border-green-200 text-green-700 bg-green-50" : ""}>
+          {row.original.enabled ? "Actif" : "Bloqué"}
+        </Badge>
+      )
+    },
+    {
+      header: "Créé le",
+      accessorKey: "createdAt",
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{new Date(row.original.createdAt).toLocaleDateString("fr-FR")}</span>
+    },
+    {
+      header: "Actions",
+      id: "actions",
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1">
+          <RoleGuard permission="users.write">
+            <Link href={`/dashboard/users/${row.original.id}/edit`}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100 text-muted-foreground hover:text-slate-900 rounded-full">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </Link>
+          </RoleGuard>
+          <Link href={`/dashboard/users/${row.original.id}`}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100 text-muted-foreground hover:text-slate-900 rounded-full">
+              <Eye className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      )
+    }
+  ]
+
   return (
     <RoleGuard permission="users.read">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Gestion des utilisateurs</h1>
-            <p className="text-muted-foreground">Gérez les comptes utilisateurs et leurs permissions</p>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-slate-50 tracking-tight">Utilisateurs</h1>
+            <p className="text-slate-500 font-medium">Administration des comptes et accès</p>
           </div>
           <RoleGuard permission="users.write">
-            <Button asChild>
+            <Button className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all" asChild>
               <Link href="/dashboard/users/new">
                 <UserPlus className="mr-2 h-4 w-4" />
                 Ajouter un utilisateur
@@ -149,30 +205,38 @@ export default function UsersPage() {
           </RoleGuard>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recherche et filtres</CardTitle>
-            <CardDescription>Trouvez rapidement un utilisateur</CardDescription>
+        <Card className="border-border/50 shadow-sm bg-white/50 dark:bg-slate-950/50 backdrop-blur-xl">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-primary" />
+                  Recherche
+                </CardTitle>
+                <CardDescription>Filtrer par nom, email ou rôle</CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
-              <div className="flex-1">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative group max-w-md flex-1">
+                <Search className="absolute left-3 top-2.5 transform text-muted-foreground h-4 w-4 group-hover:text-primary transition-colors" />
                 <Input
-                  placeholder="Rechercher par nom d'utilisateur ou email..."
-                  className="w-full"
+                  placeholder="Rechercher..."
                   value={pendingSearch}
                   onChange={(e) => setPendingSearch(e.target.value)}
+                  className="pl-9 bg-background/50 border-border/60 focus:border-primary/50 transition-all"
                 />
               </div>
               <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filtrer par rôle" />
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Rôle" />
                 </SelectTrigger>
                 <SelectContent>
                   {roleOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                      </SelectItem>
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -180,80 +244,23 @@ export default function UsersPage() {
           </CardContent>
         </Card>
 
-        {loading && (
-          <div className="flex justify-center items-center h-48">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-2">Chargement des utilisateurs...</p>
-          </div>
-        )}
-        
-        {error && !loading && (
-          <Card>
-            <CardContent className="p-6 text-center text-red-500">
-              <p>Erreur: {error}</p>
-              <Button onClick={loadUsers} className="mt-4">Réessayer</Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {!loading && !error && users.length > 0 && (
-          <div className="grid gap-4">
-            {users.map((user) => (
-              <Card key={user.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Shield className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold">{user.username}</h3>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                        <div className="flex gap-2 mt-2">
-                          <Badge variant={getRoleColor(user.roles[0] || 'VIEWER') as any}>
-                              {getRoleLabel(user.roles[0] || 'VIEWER')}
-                          </Badge>
-                          <Badge variant="outline">{user.enabled ? "Actif" : "Bloqué"}</Badge>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">
-                        Créé le {new Date(user.createdAt).toLocaleDateString("fr-FR")}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Mise à jour:{" "}
-                        {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString("fr-FR") : "Jamais"}
-                      </p>
-                      <div className="mt-2 space-x-2">
-                        <RoleGuard permission="users.write">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/dashboard/users/${user.id}/edit`}>Modifier</Link>
-                          </Button>
-                        </RoleGuard>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/dashboard/users/${user.id}`}>Voir détails</Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        {error && (
+          <div className="p-4 rounded-md bg-destructive/10 text-destructive text-sm text-center">
+            Erreur: {error} <Button variant="link" onClick={loadUsers} className="h-auto p-0">Réessayer</Button>
           </div>
         )}
 
-        {!loading && !error && users.length === 0 && (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Aucun utilisateur trouvé</h3>
-              <p className="text-muted-foreground mb-4">Aucun utilisateur ne correspond aux critères de recherche.</p>
-            </CardContent>
-          </Card>
-        )}
+        <DataTable
+          columns={columns}
+          data={paginatedUsers}
+          isLoading={loading}
+          pagination={{
+            currentPage,
+            totalPages,
+            onPageChange: setCurrentPage
+          }}
+          emptyMessage="Aucun utilisateur trouvé."
+        />
       </div>
     </RoleGuard>
   )

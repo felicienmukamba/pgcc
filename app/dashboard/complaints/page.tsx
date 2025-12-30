@@ -1,61 +1,88 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Plus, Search, Filter, Calendar, User, Shield, AlertTriangle } from "lucide-react"
+import { Plus, Search, Filter, Calendar, User, Shield, AlertTriangle, Eye, Gavel } from "lucide-react"
+import { DataTable } from "@/components/ui/data-table"
+import { ColumnDef } from "@tanstack/react-table"
 
-async function getComplaints() {
-  return await prisma.complaint.findMany({
-    include: {
-      plaintiff: true,
-      accused: true,
-      policeOfficer: true,
-    },
-    orderBy: {
-      date: "desc",
-    },
-    take: 20,
-  })
+interface Complaint {
+  id: string
+  date: string
+  type: string
+  status: string
+  place: string
+  description: string
+  plaintiff: {
+    firstName: string
+    lastName: string
+  }
+  accused?: {
+    firstName: string
+    lastName: string
+  }
+  policeOfficer: {
+    username: string
+  }
+  witnesses?: boolean
+  evidence?: boolean
 }
 
-export default async function ComplaintsPage() {
-  const session = await getServerSession(authOptions)
-  const complaints = await getComplaints()
+export default function ComplaintsPage() {
+  const { data: session } = useSession()
+  const [complaints, setComplaints] = useState<Complaint[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
 
-  // Check if user can create complaints
   const canCreateComplaint = session?.user?.roles?.some((role) => ["ADMIN", "OPJ", "CITOYEN"].includes(role))
+
+  useEffect(() => {
+    fetchComplaints()
+  }, [])
+
+  const fetchComplaints = async () => {
+    try {
+      const response = await fetch("/api/complaints")
+      if (response.ok) {
+        const data = await response.json()
+        setComplaints(data)
+      }
+    } catch (error) {
+      console.error("Error fetching complaints:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PENDING":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+        return "bg-yellow-100 text-yellow-800 border-yellow-200"
       case "IN_PROGRESS":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+        return "bg-blue-100 text-blue-800 border-blue-200"
       case "RESOLVED":
-        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+        return "bg-green-100 text-green-800 border-green-200"
       case "REJECTED":
-        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+        return "bg-red-100 text-red-800 border-red-200"
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
+        return "bg-gray-100 text-gray-800 border-gray-200"
     }
   }
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case "PENDING":
-        return "En attente"
-      case "IN_PROGRESS":
-        return "En cours"
-      case "RESOLVED":
-        return "Résolue"
-      case "REJECTED":
-        return "Rejetée"
-      default:
-        return status
+      case "PENDING": return "En attente"
+      case "IN_PROGRESS": return "En cours"
+      case "RESOLVED": return "Résolue"
+      case "REJECTED": return "Rejetée"
+      default: return status
     }
   }
 
@@ -67,159 +94,136 @@ export default async function ComplaintsPage() {
     return <Shield className="h-4 w-4 text-orange-500" />
   }
 
+  const filteredComplaints = complaints.filter((complaint) =>
+    complaint.plaintiff?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    complaint.plaintiff?.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    complaint.accused?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    complaint.accused?.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    complaint.type.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const totalPages = Math.ceil(filteredComplaints.length / ITEMS_PER_PAGE)
+  const paginatedComplaints = filteredComplaints.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  )
+
+  const columns: ColumnDef<Complaint>[] = [
+    {
+      header: "Type",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          {getPriorityIcon(row.original.type)}
+          <span className="font-semibold text-sm">{row.original.type}</span>
+        </div>
+      )
+    },
+    {
+      header: "Plaignant",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-slate-800 dark:text-slate-200">
+            {row.original.plaintiff.firstName} {row.original.plaintiff.lastName}
+          </span>
+        </div>
+      )
+    },
+    {
+      header: "Date",
+      accessorKey: "date",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Calendar className="h-3.5 w-3.5" />
+          {new Date(row.original.date).toLocaleDateString("fr-FR")}
+        </div>
+      )
+    },
+    {
+      header: "Statut",
+      accessorKey: "status",
+      cell: ({ row }) => (
+        <Badge variant="outline" className={`${getStatusColor(row.original.status)} font-medium border`}>
+          {getStatusLabel(row.original.status)}
+        </Badge>
+      )
+    },
+    {
+      header: "OPJ en charge",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1.5 text-sm">
+          <Shield className="h-3.5 w-3.5 text-slate-400" />
+          {row.original.policeOfficer.username}
+        </div>
+      )
+    },
+    {
+      header: "Actions",
+      id: "actions",
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <Link href={`/dashboard/complaints/${row.original.id}`}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-orange-50 text-muted-foreground hover:text-orange-600 rounded-full">
+              <Eye className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      )
+    }
+  ]
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gestion des plaintes</h1>
-          <p className="text-muted-foreground">Gérez les plaintes déposées par les citoyens</p>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-slate-50 tracking-tight">Plaintes</h1>
+          <p className="text-slate-500 font-medium">Gestion des plaintes et mains courantes</p>
         </div>
         {canCreateComplaint && (
           <Link href="/dashboard/complaints/new">
-            <Button>
+            <Button className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all bg-orange-600 hover:bg-orange-700 text-white">
               <Plus className="mr-2 h-4 w-4" />
-              Nouvelle plainte
+              Nouvelle Plainte
             </Button>
           </Link>
         )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recherche et filtres</CardTitle>
-          <CardDescription>Trouvez rapidement une plainte</CardDescription>
+      <Card className="border-border/50 shadow-sm bg-white/50 dark:bg-slate-950/50 backdrop-blur-xl">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Filter className="h-5 w-5 text-orange-600" />
+                Recherche
+              </CardTitle>
+              <CardDescription>Trouver une plainte par nom ou type</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Input placeholder="Rechercher par plaignant, accusé, ou type de plainte..." className="w-full" />
-            </div>
-            <Button variant="outline">
-              <Search className="mr-2 h-4 w-4" />
-              Rechercher
-            </Button>
-            <Button variant="outline">
-              <Filter className="mr-2 h-4 w-4" />
-              Filtres
-            </Button>
+          <div className="relative group max-w-md">
+            <Search className="absolute left-3 top-2.5 transform text-muted-foreground h-4 w-4 group-hover:text-orange-600 transition-colors" />
+            <Input
+              placeholder="Rechercher..."
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              className="pl-9 bg-background/50 border-border/60 focus:border-orange-500/50 transition-all"
+            />
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4">
-        {complaints.map((complaint) => (
-          <Card key={complaint.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-3 flex-1">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center">
-                      {getPriorityIcon(complaint.type)}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold flex items-center gap-2">
-                        Plainte #{complaint.id.slice(-8)}
-                        <Badge className={getStatusColor(complaint.status)}>{getStatusLabel(complaint.status)}</Badge>
-                      </h3>
-                      <p className="text-sm text-muted-foreground">Type: {complaint.type}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{new Date(complaint.date).toLocaleDateString("fr-FR")}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        Plaignant: {complaint.plaintiff.firstName} {complaint.plaintiff.lastName}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-muted-foreground" />
-                      <span>OPJ: {complaint.policeOfficer.username}</span>
-                    </div>
-                  </div>
-
-                  {complaint.accused && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Accusé:</span>{" "}
-                      <span className="font-medium">
-                        {complaint.accused.firstName} {complaint.accused.lastName}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <div>
-                      <span className="text-sm font-medium text-muted-foreground">Lieu:</span>
-                      <p className="text-sm mt-1">{complaint.place}</p>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-muted-foreground">Description:</span>
-                      <p className="text-sm mt-1 line-clamp-2">{complaint.description}</p>
-                    </div>
-                  </div>
-
-                  {(complaint.witnesses || complaint.evidence) && (
-                    <div className="flex gap-4 text-sm">
-                      {complaint.witnesses && (
-                        <div>
-                          <span className="text-muted-foreground">Témoins:</span>
-                          <Badge variant="outline" className="ml-1">
-                            Oui
-                          </Badge>
-                        </div>
-                      )}
-                      {complaint.evidence && (
-                        <div>
-                          <span className="text-muted-foreground">Preuves:</span>
-                          <Badge variant="outline" className="ml-1">
-                            Oui
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="text-right space-y-2">
-                  <Link href={`/dashboard/complaints/${complaint.id}`}>
-                    <Button variant="outline" size="sm">
-                      Voir détails
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {complaints.length === 0 && (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Aucune plainte enregistrée</h3>
-            <p className="text-muted-foreground mb-4">
-              {canCreateComplaint
-                ? "Commencez par enregistrer votre première plainte."
-                : "Aucune plainte n'a été enregistrée dans le système."}
-            </p>
-            {canCreateComplaint && (
-              <Link href="/dashboard/complaints/new">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nouvelle plainte
-                </Button>
-              </Link>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <DataTable
+        columns={columns}
+        data={paginatedComplaints}
+        isLoading={loading}
+        pagination={{
+          currentPage,
+          totalPages,
+          onPageChange: setCurrentPage
+        }}
+        emptyMessage="Aucune plainte trouvée."
+      />
     </div>
   )
 }

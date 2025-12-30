@@ -46,7 +46,7 @@ export function LandingFooter() {
                     <p>© {new Date().getFullYear()} Ministère de l'Intérieur - RDC. Tous droits réservés.</p>
                     <div className="flex items-center gap-4">
                         <span className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium">v2.0.0</span>
-                        <span>Sécurisé par ANR</span>
+                        <span>Sécurisé par Felicien Mukamba</span>
                     </div>
                 </div>
             </div>

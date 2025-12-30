@@ -54,7 +54,7 @@ export default function Home() {
                 </Button>
               </Link>
               <Link href="/auth/register-citizen">
-                <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 px-8 h-14 text-lg">
+                <Button size="lg" variant="default" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 px-8 h-14 text-lg">
                   Créer un Compte
                 </Button>
               </Link>

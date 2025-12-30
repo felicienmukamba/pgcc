@@ -1,14 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, FileText, Calendar, MapPin, ExternalLink, UserPlus } from "lucide-react"
+import { Plus, Search, FileText, Calendar, MapPin, ExternalLink, UserPlus, Filter, Eye } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { RoleGuard } from "@/components/auth/role-guard"
+import { DataTable } from "@/components/ui/data-table"
+import { ColumnDef } from "@tanstack/react-table"
+
 
 interface BirthRecord {
   id: string
@@ -27,11 +30,12 @@ interface BirthRecord {
   }
 }
 
-// CORRECTION: Retirer le mot-clé 'async' car c'est un Client Component.
 export default function BirthRecordsPage() {
   const [birthRecords, setBirthRecords] = useState<BirthRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
 
   const router = useRouter()
 
@@ -41,14 +45,12 @@ export default function BirthRecordsPage() {
 
   const fetchBirthRecords = async () => {
     try {
-      // NOTE: Dans un vrai projet Next.js, cette route API doit être implémentée
-      // pour retourner les données des actes de naissance.
       const response = await fetch("/api/birth-records")
       if (response.ok) {
         const data = await response.json()
+        // Sort by date desc by default if not already
         setBirthRecords(data)
       } else {
-        // Gérer les erreurs de réponse non-OK
         console.error("Failed to fetch birth records:", response.statusText)
       }
     } catch (error) {
@@ -64,126 +66,132 @@ export default function BirthRecordsPage() {
     (record.birthPlace || '').toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
+  // Client-side pagination logic since the API seems to return all
+  const totalPages = Math.ceil(filteredRecords.length / ITEMS_PER_PAGE)
+  const paginatedRecords = filteredRecords.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  )
+
+  const columns: ColumnDef<BirthRecord>[] = [
+    {
+      header: "Enfant",
+      accessorKey: "childName",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-foreground">{row.original.childName}</span>
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            Né(e) le {new Date(row.original.birthDate).toLocaleDateString("fr-FR")}
+          </span>
+        </div>
+      )
+    },
+    {
+      header: "Numéro",
+      accessorKey: "registrationNumber",
+      cell: ({ row }) => (
+        <Badge variant="outline" className="font-mono text-[10px] bg-muted/30">
+          {row.getValue("registrationNumber")}
+        </Badge>
+      )
+    },
+    {
+      header: "Lieu",
+      accessorKey: "birthPlace",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1.5 text-sm">
+          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+          {row.getValue("birthPlace")}
+        </div>
+      )
+    },
+    {
+      header: "Genre",
+      accessorKey: "gender",
+      cell: ({ row }) => <Badge variant={row.original.gender === 'MALE' ? 'secondary' : 'default'} className="text-[10px]">{row.original.gender}</Badge>
+    },
+    {
+      header: "Parents",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.original.citizen?.firstName} {row.original.citizen?.lastName}
+        </span>
+      )
+    },
+    {
+      header: "Date Enreg.",
+      accessorKey: "date",
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{new Date(row.getValue("date")).toLocaleDateString("fr-FR")}</span>
+    },
+    {
+      header: "Actions",
+      id: "actions",
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <Link href={`/dashboard/birth-records/${row.original.id}`}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-blue-50 text-muted-foreground hover:text-blue-600 rounded-full">
+              <Eye className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      )
+    }
+  ]
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Actes de Naissance</h1>
-          <p className="text-muted-foreground">Gestion des actes de naissance et enregistrements civils</p>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-slate-50 tracking-tight">Actes de Naissance</h1>
+          <p className="text-slate-500 font-medium">Gestion des registres d'état civil</p>
         </div>
         <RoleGuard permission="birth.write">
-          {/* CORRECTION: Le lien pointait vers /dashboard/marriage-records/new */}
           <Link href="/dashboard/birth-records/new">
-            <Button>
+            <Button className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
               <UserPlus className="mr-2 h-4 w-4" />
-              Nouvel Acte de naissance
+              Nouvel Enregistrement
             </Button>
           </Link>
         </RoleGuard>
       </div>
 
-      {/* Search */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+      <Card className="border-border/50 shadow-sm bg-white/50 dark:bg-slate-950/50 backdrop-blur-xl">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Filter className="h-5 w-5 text-primary" />
+                Recherche
+              </CardTitle>
+              <CardDescription>Trouver un acte par nom ou numéro</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="relative group max-w-md">
+            <Search className="absolute left-3 top-2.5 transform text-muted-foreground h-4 w-4 group-hover:text-primary transition-colors" />
             <Input
-              placeholder="Rechercher par nom, numéro d'enregistrement ou lieu de naissance..."
+              placeholder="Rechercher..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} // Reset page on search
+              className="pl-9 bg-background/50 border-border/60 focus:border-primary/50"
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Birth Records List */}
-      <div className="grid gap-4">
-        {filteredRecords.map((record) => (
-          <Card key={record.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-primary" />
-                    <h3 className="font-semibold">{record.childName}</h3>
-                    <Badge variant="outline">{record.gender}</Badge>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">N° Enregistrement:</span>
-                      <span>{record.registrationNumber}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      <span>Né(e) le {new Date(record.birthDate).toLocaleDateString("fr-FR")}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      <span>à {record.birthPlace}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Officiant:</span>
-                      <span>{record.officiant.username}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">
-                    Enregistré le {new Date(record.date).toLocaleDateString("fr-FR")}
-                  </p>
-                  <p>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => router.push(`/dashboard/birth-records/${record.id}`)}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Voir détails
-                    </Button>
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {filteredRecords.length === 0 && (
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              {searchTerm ? "Aucun acte de naissance trouvé" : "Aucun acte de naissance enregistré"}
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {searchTerm ? "Aucun résultat pour votre recherche. Veuillez vérifier l'orthographe ou les critères." : "Commencez par créer un nouvel acte de naissance."}
-            </p>
-            <RoleGuard permission="birth.write">
-              <Button asChild>
-                <Link href="/dashboard/birth-records/new">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Créer un Acte
-                </Link>
-              </Button>
-            </RoleGuard>
-          </CardContent>
-        </Card>
-      )}
+      <DataTable
+        columns={columns}
+        data={paginatedRecords}
+        isLoading={loading}
+        pagination={{
+          currentPage,
+          totalPages,
+          onPageChange: setCurrentPage
+        }}
+        emptyMessage="Aucun acte de naissance trouvé."
+      />
     </div>
   )
 }

@@ -2,16 +2,18 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { UserPlus, Search, Pencil, Eye } from "lucide-react"
+import { Search, Pencil, Eye, Filter } from "lucide-react"
 import Link from "next/link"
 
 // Composants shadcn/ui
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DataTable, ColumnDef } from "@/components/ui/data-table"
+import { DataTable } from "@/components/ui/data-table"
+import { ColumnDef } from "@tanstack/react-table"
+
 
 // Définition d'un type Citoyen simplifié (à adapter si nécessaire)
 interface Citizen {
@@ -108,73 +110,103 @@ export function CitizensTableWrapper({
     const columns: ColumnDef<Citizen>[] = [
         {
             header: "Nom Complet",
-            cell: (citizen) => (
-                <div>
-                    <span className="font-medium text-slate-900">{citizen.firstName} {citizen.lastName}</span>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                        Né(e) le {new Date(citizen.birthDate).toLocaleDateString("fr-FR")}
-                    </p>
-                </div>
-            )
+            accessorKey: "firstName",
+            cell: ({ row }) => {
+                const citizen = row.original
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-semibold text-foreground/90">{citizen.firstName} {citizen.lastName}</span>
+                        <span className="text-xs text-muted-foreground">
+                            Né(e) le {new Date(citizen.birthDate).toLocaleDateString("fr-FR")}
+                        </span>
+                    </div>
+                )
+            }
         },
         {
             header: "ID National",
             accessorKey: "nationalityID",
-            cell: (citizen) => <span className="font-mono text-xs">{citizen.nationalityID}</span>
-        },
-        {
-            header: "Genre",
-            accessorKey: "gender",
-            cell: (citizen) => getGenderLabel(citizen.gender)
-        },
-        {
-            header: "Statut Marital",
-            accessorKey: "maritalStatus",
-            cell: (citizen) => <Badge variant="outline" className="text-[10px]">{getMaritalStatusLabel(citizen.maritalStatus)}</Badge>
-        },
-        {
-            header: "Nationalité",
-            accessorKey: "nationality",
-            cell: (citizen) => (
-                <Badge variant={citizen.nationality === "CONGOLAISE" || citizen.nationality === "CONGOLAISE_RDC" ? "default" : "secondary"} className="text-[10px]">
-                    {citizen.nationality === "CONGOLAISE" || citizen.nationality === "CONGOLAISE_RDC" ? "National" : "Étranger"}
+            cell: ({ row }) => (
+                <Badge variant="outline" className="font-mono text-[10px] text-muted-foreground border-border/60 bg-muted/20">
+                    {row.original.nationalityID}
                 </Badge>
             )
         },
         {
-            header: "Actions",
-            className: "text-right",
-            cell: (citizen) => (
-                <div className="flex justify-end gap-2">
-                    <Link href={`/dashboard/citizens/${citizen.id}/edit`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" title="Modifier">
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                    </Link>
-                    <Link href={`/dashboard/citizens/${citizen.id}`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-600 hover:text-slate-900 hover:bg-slate-100" title="Voir détails">
-                            <Eye className="h-4 w-4" />
-                        </Button>
-                    </Link>
-                </div>
+            header: "Genre",
+            accessorKey: "gender",
+            cell: ({ row }) => (
+                <span className="text-sm font-medium">{getGenderLabel(row.original.gender)}</span>
             )
+        },
+        {
+            header: "Statut Marital",
+            accessorKey: "maritalStatus",
+            cell: ({ row }) => (
+                <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium">
+                    {getMaritalStatusLabel(row.original.maritalStatus)}
+                </span>
+            )
+        },
+        {
+            header: "Nationalité",
+            accessorKey: "nationality",
+            cell: ({ row }) => {
+                const citizen = row.original
+                return (
+                    <Badge
+                        variant={citizen.nationality === "CONGOLAISE" || citizen.nationality === "CONGOLAISE_RDC" ? "default" : "secondary"}
+                        className="text-[10px] shadow-none"
+                    >
+                        {citizen.nationality === "CONGOLAISE" || citizen.nationality === "CONGOLAISE_RDC" ? "RDC" : "Étranger"}
+                    </Badge>
+                )
+            }
+        },
+        {
+            header: "Actions",
+            id: "actions",
+            cell: ({ row }) => {
+                const citizen = row.original
+                return (
+                    <div className="flex justify-end gap-1">
+                        <Link href={`/dashboard/citizens/${citizen.id}/edit`}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all rounded-full" title="Modifier">
+                                <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                        </Link>
+                        <Link href={`/dashboard/citizens/${citizen.id}`}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all rounded-full" title="Voir détails">
+                                <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                        </Link>
+                    </div>
+                )
+            }
         }
     ]
 
     return (
         <div className="space-y-6">
-            <Card className="border-slate-200 shadow-sm">
-                <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
-                    <CardTitle className="text-base font-bold uppercase tracking-tight text-slate-800">Recherche & Filtres</CardTitle>
-                    <CardDescription>Critères de sélection des dossiers citoyens</CardDescription>
+            <Card className="border-border/50 shadow-sm bg-white/50 dark:bg-slate-950/50 backdrop-blur-xl">
+                <CardHeader className="pb-4">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <CardTitle className="text-lg font-bold flex items-center gap-2">
+                                <Filter className="h-5 w-5 text-primary" />
+                                Recherche & Filtres
+                            </CardTitle>
+                            <CardDescription>Affinez la liste des citoyens</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
-                <CardContent className="pt-6">
+                <CardContent>
                     <div className="flex flex-col md:flex-row gap-4">
-                        <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <div className="flex-1 relative group">
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                             <Input
                                 placeholder="Rechercher par nom, prénom, ou ID national..."
-                                className="pl-9"
+                                className="pl-9 bg-background/50 border-border/60 focus:border-primary/50 transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onKeyDown={handleKeyDown}
@@ -182,7 +214,7 @@ export function CitizensTableWrapper({
                         </div>
 
                         <Select value={genderFilter} onValueChange={(value) => setGenderFilter(value)}>
-                            <SelectTrigger className="w-full md:w-[150px]">
+                            <SelectTrigger className="w-full md:w-[150px] bg-background/50 border-border/60">
                                 <SelectValue placeholder="Genre" />
                             </SelectTrigger>
                             <SelectContent>
@@ -194,7 +226,7 @@ export function CitizensTableWrapper({
                         </Select>
 
                         <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value)}>
-                            <SelectTrigger className="w-full md:w-[150px]">
+                            <SelectTrigger className="w-full md:w-[150px] bg-background/50 border-border/60">
                                 <SelectValue placeholder="Statut" />
                             </SelectTrigger>
                             <SelectContent>
@@ -206,8 +238,8 @@ export function CitizensTableWrapper({
                             </SelectContent>
                         </Select>
 
-                        <Button onClick={handleSearchClick} disabled={isPending} className="md:w-auto">
-                            {isPending ? '...' : <Search className="h-4 w-4" />}
+                        <Button onClick={handleSearchClick} disabled={isPending} className="md:w-auto shadow-sm">
+                            {isPending ? 'Recherche...' : 'Appliquer'}
                         </Button>
                     </div>
                 </CardContent>
