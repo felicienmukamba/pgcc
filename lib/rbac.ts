@@ -36,7 +36,10 @@ export type Permission =
   | "divorce.delete"
   | "exam.read"
   | "exam.write"
-  | "exam.delete";
+  | "exam.delete"
+  | "companies.verify"
+  | "companies.delete"
+  | "companies.write";
 
 // rôles RBAC utilisés côté code
 export type Role =

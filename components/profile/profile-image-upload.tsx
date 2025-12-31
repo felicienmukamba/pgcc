@@ -5,13 +5,13 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Upload, User2 } from "lucide-react" 
+import { Loader2, Upload, User2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 
 interface ProfileImageUploadProps {
   currentImage?: string | null
   username: string
-  onImageUpdated: (newImageUrl: string) => void 
+  onImageUpdated: (newImageUrl: string) => void
 }
 
 export function ProfileImageUpload({ currentImage, username, onImageUpdated }: ProfileImageUploadProps) {
@@ -37,18 +37,18 @@ export function ProfileImageUpload({ currentImage, username, onImageUpdated }: P
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      
-      if (file.size > 5 * 1024 * 1024) { 
-          toast({
-              title: "Erreur",
-              description: "Le fichier est trop volumineux (max 5MB).",
-              variant: "destructive",
-          });
-          e.target.value = '';
-          setImageFile(null);
-          return;
+
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Erreur",
+          description: "Le fichier est trop volumineux (max 5MB).",
+          variant: "destructive",
+        });
+        e.target.value = '';
+        setImageFile(null);
+        return;
       }
-      
+
       setImageFile(file)
     }
   }
@@ -68,7 +68,7 @@ export function ProfileImageUpload({ currentImage, username, onImageUpdated }: P
         method: "POST",
         body: formData,
       })
-      
+
       const data = await response.json()
 
       if (!response.ok) {
@@ -76,13 +76,13 @@ export function ProfileImageUpload({ currentImage, username, onImageUpdated }: P
       }
 
       // Appel de la fonction de rappel du parent
-      onImageUpdated(data.user.image) 
-      
+      onImageUpdated(data.user.image)
+
       toast({
         title: "Succès",
         description: "Photo de profil mise à jour.",
       })
-      
+
     } catch (error: any) {
       console.error("Erreur lors du téléchargement:", error)
       toast({
@@ -92,14 +92,14 @@ export function ProfileImageUpload({ currentImage, username, onImageUpdated }: P
       })
     } finally {
       setIsUploading(false)
-      setImageFile(null) 
+      setImageFile(null)
     }
   }
 
   return (
     <div className="flex flex-col items-center justify-center p-6">
       <div className="relative w-32 h-32 rounded-full overflow-hidden mb-4 border-4 border-indigo-500 bg-gray-100 flex items-center justify-center shadow-lg">
-        
+
         {previewUrl ? (
           <Image
             src={previewUrl}
@@ -107,8 +107,13 @@ export function ProfileImageUpload({ currentImage, username, onImageUpdated }: P
             width={128}
             height={128}
             className="object-cover w-full h-full"
+            unoptimized={true}
+            priority
             onError={(e) => {
-              e.currentTarget.src = 'https://placehold.co/128x128/f3f4f6/a1a1aa?text=Image+invalide'; 
+              console.error("Image load error:", previewUrl);
+              e.currentTarget.style.display = 'none'; // Hide broken image
+              // Optionally revert to placeholder if needed, but the parent handles 'null' previewUrl.
+              // Here we just let it hide and maybe show a fallback below if we wanted.
             }}
           />
         ) : (
@@ -116,21 +121,21 @@ export function ProfileImageUpload({ currentImage, username, onImageUpdated }: P
         )}
         <div className="absolute inset-0 bg-black opacity-10 rounded-full"></div>
       </div>
-      
+
       <p className="text-xl font-bold text-center text-gray-900 mb-4">{username}</p>
-      
+
       <div className="mt-4 flex flex-col gap-3 w-full max-w-xs">
         <div className="space-y-2">
-            <Label htmlFor="image-upload" className="text-sm font-medium text-gray-700">
-                Choisir un fichier (Max 5MB)
-            </Label>
-            <Input 
-                id="image-upload" 
-                type="file" 
-                onChange={handleImageChange} 
-                className="w-full cursor-pointer " 
-                accept="image/png, image/jpeg, image/gif" 
-            />
+          <Label htmlFor="image-upload" className="text-sm font-medium text-gray-700">
+            Choisir un fichier (Max 5MB)
+          </Label>
+          <Input
+            id="image-upload"
+            type="file"
+            onChange={handleImageChange}
+            className="w-full cursor-pointer "
+            accept="image/png, image/jpeg, image/gif"
+          />
         </div>
 
         <Button
@@ -139,12 +144,12 @@ export function ProfileImageUpload({ currentImage, username, onImageUpdated }: P
         >
           {isUploading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Téléchargement en cours...
             </>
           ) : (
             <>
-              <Upload className="mr-2 h-4 w-4" /> 
+              <Upload className="mr-2 h-4 w-4" />
               {imageFile ? "Confirmer et Enregistrer" : "Sélectionner pour Uploader"}
             </>
           )}

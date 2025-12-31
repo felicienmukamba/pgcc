@@ -30,7 +30,8 @@ import {
   MoreVertical,
   Fingerprint,
   HeartCrack,
-  Stethoscope
+  Stethoscope,
+  Building2
 } from "lucide-react"
 
 import {
@@ -112,6 +113,21 @@ const navigation: NavItem[] = [
         children: [
           { name: "Plaintes", href: "/dashboard/complaints", icon: Stethoscope, requiredPermission: "complaints.read" },
           { name: "Casier judiciaire", href: "/dashboard/convictions", icon: Stethoscope, requiredPermission: "convictions.read" },
+        ],
+      },
+    ]
+  },
+  {
+    name: "ESPACE ENTREPRISES",
+    href: "#",
+    icon: null,
+    children: [
+      {
+        name: "API Entreprises",
+        icon: Building2,
+        module: "companies",
+        children: [
+          { name: "Vérification d'identité", href: "/dashboard/companies/verification", requiredPermission: "companies.verify" },
         ],
       },
     ]

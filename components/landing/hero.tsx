@@ -7,23 +7,28 @@ export function HeroSection() {
         <section className="relative min-h-[90vh] flex items-center bg-background overflow-hidden">
             {/* Background */}
             <div className="absolute inset-0">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--muted))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--muted))_1px,transparent_1px)] bg-[size:60px_60px] opacity-30" />
-                <div className="absolute top-1/4 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px]" />
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-green-500/5 rounded-full blur-[120px]" />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--muted))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--muted))_1px,transparent_1px)] bg-[size:60px_60px] opacity-20" />
+                {/* RDC Flag Colors Gradients */}
+                <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#007bff]/10 rounded-full blur-[120px]" />
+                <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#ce1021]/5 rounded-full blur-[100px]" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#f7d618]/10 rounded-full blur-[120px]" />
             </div>
 
             <div className="container mx-auto px-4 relative z-10 py-20">
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
                     {/* Content */}
                     <div className="max-w-2xl">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full mb-6">
-                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-sm text-primary font-medium">Système Opérationnel 24/7</span>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#007bff]/10 border border-[#007bff]/20 rounded-full mb-6">
+                            <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ce1021] opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#ce1021]"></span>
+                            </span>
+                            <span className="text-sm font-bold text-[#007bff] tracking-wide">OFFICIEL & SÉCURISÉ</span>
                         </div>
 
                         <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-foreground leading-[1.1] mb-6">
                             Identité{" "}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-green-500">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007bff] via-[#ce1021] to-[#f7d618]">
                                 Numérique
                             </span>{" "}
                             Nationale
@@ -37,7 +42,7 @@ export function HeroSection() {
 
                         <div className="flex flex-col sm:flex-row gap-4 mb-12">
                             <Link href="/dashboard">
-                                <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 h-14 text-lg font-semibold group">
+                                <Button size="lg" className="bg-[#007bff] hover:bg-[#0056b3] text-white px-8 h-14 text-lg font-bold shadow-lg shadow-blue-500/20 group transition-all">
                                     Accéder au Portail
                                     <ChevronRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                                 </Button>
@@ -72,11 +77,19 @@ export function HeroSection() {
                             {/* ID Card Visual */}
                             <div className="relative bg-card rounded-3xl p-8 border border-border shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
                                 <div className="flex items-start gap-6">
-                                    <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                                        <Shield className="h-12 w-12 text-white" />
+                                    <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-[#007bff] to-[#0056b3] flex items-center justify-center shadow-inner">
+                                        <div className="relative">
+                                            <Shield className="h-12 w-12 text-[#f7d618]" />
+                                            <div className="absolute -top-1 -right-1 h-3 w-3 bg-[#ce1021] rounded-full border-2 border-[#0056b3]" />
+                                        </div>
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-xs text-primary font-bold tracking-widest mb-1">RÉPUBLIQUE DÉMOCRATIQUE DU CONGO</p>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="h-2 w-8 bg-[#007bff] rounded-full" />
+                                            <div className="h-2 w-8 bg-[#ce1021] rounded-full" />
+                                            <div className="h-2 w-8 bg-[#f7d618] rounded-full" />
+                                        </div>
+                                        <p className="text-[10px] text-[#007bff] font-black tracking-widest uppercase">RÉPUBLIQUE DÉMOCRATIQUE DU CONGO</p>
                                         <h3 className="text-2xl font-black text-foreground mb-1">CARTE D'IDENTITÉ</h3>
                                         <p className="text-muted-foreground text-sm">Biométrique Nationale</p>
                                     </div>

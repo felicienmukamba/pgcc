@@ -34,10 +34,10 @@ export function LandingFooter() {
                     <div>
                         <h4 className="font-semibold text-foreground mb-4">Légal</h4>
                         <ul className="space-y-2 text-sm">
-                            <li><Link href="#" className="hover:text-primary transition-colors">Confidentialité</Link></li>
-                            <li><Link href="#" className="hover:text-primary transition-colors">Conditions d'utilisation</Link></li>
-                            <li><Link href="#" className="hover:text-primary transition-colors">Accessibilité</Link></li>
-                            <li><Link href="#" className="hover:text-primary transition-colors">Contact</Link></li>
+                            <li><Link href="/legal/privacy" className="hover:text-primary transition-colors">Confidentialité</Link></li>
+                            <li><Link href="/legal/terms" className="hover:text-primary transition-colors">Conditions d'utilisation</Link></li>
+                            <li><Link href="/legal/accessibility" className="hover:text-primary transition-colors">Accessibilité</Link></li>
+                            <li><Link href="/legal/contact" className="hover:text-primary transition-colors">Contact</Link></li>
                         </ul>
                     </div>
                 </div>
