@@ -9,16 +9,15 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    // Cette partie est cruciale pour éviter le "Maximum call stack size exceeded"
-    serverExternalPackages: [
-      'canvas', 
-      'face-api.js', 
-      'sharp', 
-      '@react-pdf/renderer',
-      'argon2'
-    ],
-  },
+  // Sur Next.js 14.0.x, on le place ici :
+  bundlePagesRouterDependencies: true, 
+  serverExternalPackages: [
+    'canvas',
+    'face-api.js',
+    'sharp',
+    '@react-pdf/renderer',
+    'argon2'
+  ],
 };
 
 export default nextConfig;
