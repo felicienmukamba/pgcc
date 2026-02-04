@@ -9,10 +9,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // 💡 AJOUTEZ CECI : 
-  // Cela force Next.js à traiter ces modules comme externes au lieu de 
-  // tenter de tracer chaque fichier interne, ce qui cause le crash.
   experimental: {
+    // Cette partie est cruciale pour éviter le "Maximum call stack size exceeded"
     serverExternalPackages: [
       'canvas', 
       'face-api.js', 
@@ -21,6 +19,6 @@ const nextConfig = {
       'argon2'
     ],
   },
-}
+};
 
-module.exports = nextConfig;
+export default nextConfig;
