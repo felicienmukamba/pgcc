@@ -2,6 +2,7 @@
   "name": "gov-citizen-app",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -46,8 +47,8 @@
     "encoding": "^0.1.13",
     "face-api.js": "^0.22.2",
     "fs": "0.0.1-security",
-    "geist": "1.5.1",
-    "lucide-react": "^0.294.0",
+    "geist": "^1.5.1",
+    "lucide-react": "0.294.0",
     "next": "14.0.4",
     "next-auth": "^4.24.11",
     "next-themes": "^0.2.1",
